@@ -39,7 +39,6 @@ jobs:
           git config --global user.email "axeldvc@gmail.com"
           git config --global user.name "axeldinh"
           git config --global credential.helper cache
-          cp docs/build/html/index.html index.html
-          git add index.html
+          git add docs/build/
           git commit -m "Add documentation"
           git push      
