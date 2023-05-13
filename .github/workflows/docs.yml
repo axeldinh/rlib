@@ -36,12 +36,12 @@ jobs:
 
       - name: Push Documentation
         run: |
-          git config --global user.email "axeldvc@gmail.com"
-          git config --global user.name "axeldinh"
-          git config --global credential.helper cache
-          cp docs/build/html/index.html index.html
-          git add index.html
-          git commit -m "Adding documentation"
-          git push
+          cd docs/_build/html
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "axeldvc@gmail.com"
+          git add .
+          git commit -m "Deployed to Github Pages"
+          git push --force --quiet "https://${GITHUB_TOKEN}@${GH_REF}" master
       
 
