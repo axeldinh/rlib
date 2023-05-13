@@ -36,11 +36,11 @@ jobs:
 
       - name: Push Documentation
         run: |
-          cd docs/_build/html
+          cp docs/build/html/index.html index.html
           git init
           git config user.name "GitHub Actions"
           git config user.email "axeldvc@gmail.com"
-          git add .
+          git add index.html
           git commit -m "Deployed to Github Pages"
           git push --force --quiet "https://${GITHUB_TOKEN}@${GH_REF}" master
       
