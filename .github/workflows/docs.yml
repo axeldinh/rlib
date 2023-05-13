@@ -42,8 +42,4 @@ jobs:
           cp docs/build/html/index.html index.html
           git add index.html
           git commit -m "Add documentation"
-          git push
-          
-        #--force --quiet "https://${{ secrets.TOKEN }}@github.com/axeldinh/rlib.git"
-      
-
+          git push      
