@@ -1,0 +1,7 @@
+numpy>=1.20.0
+opencv-python>=4.7.0.0
+pygame>=2.1.0
+gymnasium[other]>=0.28.0
+torch>=2.0.0
+tqdm
+matplotlib
