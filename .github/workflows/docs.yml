@@ -41,7 +41,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "axeldvc@gmail.com"
           git add index.html
-          git commit -m "Deployed to Github Pages"
-          git push --force --quiet "https://${GITHUB_TOKEN}@${GH_REF}" master
+          git commit -m "Add documentation"
+          git push --force --quiet "https://${{ secrets.GITHUB_TOKEN }}@${{ github.repository }}"
       
 
