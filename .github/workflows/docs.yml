@@ -37,9 +37,6 @@ jobs:
       - name: Push Documentation
         run: |
           cp docs/build/html/index.html index.html
-          git init
-          git config user.name "GitHub Actions"
-          git config user.email "axeldvc@gmail.com"
           git add index.html
           git commit -m "Add documentation"
           git push --force --quiet "https://${{ secrets.GITHUB_TOKEN }}@${{ github.repository }}"
