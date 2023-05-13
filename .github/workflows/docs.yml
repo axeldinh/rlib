@@ -36,6 +36,8 @@ jobs:
 
       - name: Push Documentation
         run: |
+          git config --global user.email "axeldvc@gmail.com"
+          git config --global user.name "axeldinh"
           cp docs/build/html/index.html index.html
           git add index.html
           git commit -m "Add documentation"
