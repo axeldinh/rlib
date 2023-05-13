@@ -1,6 +1,6 @@
-# This is a basic workflow to help you get started with Actions
+# Action to create the sphinx documentation
 
-name: CI
+name: DOCS
 
 # Controls when the workflow will run
 on:
@@ -30,7 +30,15 @@ jobs:
         run: echo Hello, world!
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Building Documentation
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          python -m pip install sphinx furo
+          cd docs
+          make html
+
+      # Uploads the documentation to the gh-pages branch
+      - name: Deploy Documentation
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
