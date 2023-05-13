@@ -40,7 +40,7 @@ jobs:
           git config --global user.name "axeldinh"
           cp docs/build/html/index.html index.html
           git add index.html
-          git commit -m "Add documentation" github.com/axeldinh/axeldinh.github.io.gi
+          git commit -m "Add documentation"
           git push --force --quiet "https://${{ secrets.GITHUB_TOKEN }}@$github.com/axeldinh/rlib.git" master:master
       
 
