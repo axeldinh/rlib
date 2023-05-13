@@ -41,7 +41,7 @@ jobs:
           git config --global credential.helper cache
           cp docs/build/html/index.html index.html
           git add index.html
-          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git commit -m "Adding documentation"
           git push
       
 
