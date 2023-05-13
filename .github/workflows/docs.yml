@@ -38,9 +38,12 @@ jobs:
         run: |
           git config --global user.email "axeldvc@gmail.com"
           git config --global user.name "axeldinh"
+          git config --global credential.helper cache
           cp docs/build/html/index.html index.html
           git add index.html
           git commit -m "Add documentation"
-          git push --force --quiet "https://${{ secrets.TOKEN }}@github.com/axeldinh/rlib.git" master:master
+          git push
+          
+        #--force --quiet "https://${{ secrets.TOKEN }}@github.com/axeldinh/rlib.git"
       
 
