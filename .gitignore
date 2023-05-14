@@ -1,5 +1,4 @@
 build/
-docs/build/
 rlib.egg-info/
 __pycache__/
 .vscode/
