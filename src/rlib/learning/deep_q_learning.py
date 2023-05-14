@@ -2,6 +2,7 @@ from collections import deque
 from tqdm import trange
 import numpy as np
 import torch
+import torch.nn .functional as F
 from .base_algorithm import BaseAlgorithm
 from rlib.wrappers import NormWrapper
 
@@ -49,6 +50,8 @@ class DeepQLearning(BaseAlgorithm):
         
         # Store s_t, a_t, r_t, s_t+1, done
         self.memory_buffer = deque(maxlen=50_000)
+
+        self.optimizer = torch.optim.Adam(self.current_agent.parameters(), lr=self.lr)
         
     def train_(self):
 
@@ -129,16 +132,19 @@ class DeepQLearning(BaseAlgorithm):
         s_t_1 = torch.tensor(np.stack(s_t_1)).view(self.batch_size, -1)
         done_ = torch.tensor(np.stack(done_)).view(self.batch_size)
 
-        q = self.current_agent(s_t)[:, a_t]
+        q = self.current_agent(s_t)
+        q = q.gather(1, a_t.unsqueeze(1)).squeeze(1)
+        next_q = self.current_agent(s_t_1).detach()
         next_q = torch.amax(self.current_agent(s_t_1).detach(), dim=-1)
         target = r_t + self.discount * next_q * (1 - done_)
 
-        loss = ((q - target) ** 2).mean()
+        loss = F.smooth_l1_loss(q, target)
+
+        self.current_agent.zero_grad()
 
         loss.backward()
 
-        for p in self.current_agent.parameters():
-            p = p - self.lr * p.grad
+        self.optimizer.step()
 
         return loss
     
