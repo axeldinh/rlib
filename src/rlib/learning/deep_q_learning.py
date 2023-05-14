@@ -13,16 +13,20 @@ class DeepQLearning(BaseAlgorithm):
             max_episode_length=-1,
             max_total_reward=-1,
             save_folder="deep_qlearning",
-            lr=0.01,
+            lr=3e-4,
             discount=0.99,
             epsilon_greedy=0.1,
             epsilon_decay=0.99,
             epsilon_min=0.01,
-            num_time_steps=100000,
+            num_time_steps=100_000,
+            learning_starts=50_000,
+            update_every=4,
+            main_target_update=100,
             verbose=True,
-            test_every=50000,
+            test_every=50_000,
             num_test_episodes=10,
-            batch_size=64
+            batch_size=64,
+            size_replay_buffer=50_000
             ):
         
         norm_env_fn = lambda render_mode=None: NormWrapper(env_fn(render_mode))
@@ -35,13 +39,23 @@ class DeepQLearning(BaseAlgorithm):
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.num_time_steps = num_time_steps
+        self.learning_starts = learning_starts
+        self.update_every = update_every
+        self.main_target_update = main_target_update
         self.verbose = verbose
         self.test_every = test_every
         self.num_test_episodes = num_test_episodes
         self.batch_size = batch_size
+        self.size_replay_buffer = size_replay_buffer
 
         self.current_time_step = 0
         self.current_agent = self.agent_fn()
+        self.target_agent = self.agent_fn()
+
+        # Copy the parameters of the main model to the target model
+        for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
+            target_param.data.copy_(param.data)
+        
         self.losses = []
         self.train_rewards = []
         self.mean_test_rewards = []
@@ -49,13 +63,15 @@ class DeepQLearning(BaseAlgorithm):
         self.episodes_lengths = []
         
         # Store s_t, a_t, r_t, s_t+1, done
-        self.memory_buffer = deque(maxlen=50_000)
+        self.replay_buffer = deque(maxlen=self.size_replay_buffer)
 
         self.optimizer = torch.optim.Adam(self.current_agent.parameters(), lr=self.lr)
         
     def train_(self):
 
         env = self.env_fn()
+
+        self._populate_replay_buffer(env)
 
         if self.verbose:
             pbar = trange(self.num_time_steps)
@@ -75,17 +91,20 @@ class DeepQLearning(BaseAlgorithm):
             if np.random.rand() < self.epsilon_greedy:
                 action = env.action_space.sample()
             else:
-                action = self.current_agent.get_action(state)
+                action = self.target_agent.get_action(state)
 
             new_state, reward, done, _, _ = env.step(action)
 
             episode_reward += reward
 
-            self.memory_buffer.append((state.copy(), action, reward, new_state.copy(), done))
+            self.replay_buffer.append((state.copy(), action, reward, new_state.copy(), done))
 
-            if self.current_time_step % 4 == 0 and len(self.memory_buffer) >= self.batch_size:
+            if self.current_time_step % self.update_every == 0:
                 loss = self.update_weights()
                 self.losses.append(loss.item())
+                if self.current_time_step % self.main_target_update == 0:
+                    for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
+                        target_param.data.copy_(param.data)
 
             state = new_state
             
@@ -115,10 +134,35 @@ class DeepQLearning(BaseAlgorithm):
                 length_episode = 0
                 episode_reward = 0
 
+    def _populate_replay_buffer(self, env):
+
+        obs, _ = env.reset()
+        done = False
+
+        while len(self.replay_buffer) < self.learning_starts:
+            if np.random.rand() < self.epsilon_greedy:
+                action = env.action_space.sample()
+            else:
+                action = self.target_agent.get_action(obs)
+            new_obs, reward, done, _, _ = env.step(action)
+            self.replay_buffer.append((obs.copy(), action, reward, new_obs.copy(), done))
+            obs = new_obs
+
+            if done:
+                obs, _ = env.reset()
+                done = False
+
+            if len(self.replay_buffer) >= self.size_replay_buffer:
+                break
+
+        if self.verbose:
+            print(f"Replay buffer populated with {len(self.replay_buffer)} samples.")
+
+
     def update_weights(self):
 
-        batch = np.random.choice(len(self.memory_buffer), self.batch_size, replace=False)
-        batch = [self.memory_buffer[i] for i in batch]
+        batch = np.random.choice(len(self.replay_buffer), self.batch_size, replace=False)
+        batch = [self.replay_buffer[i] for i in batch]
         
         s_t = [x[0] for x in batch]
         a_t = [x[1] for x in batch]
@@ -134,11 +178,10 @@ class DeepQLearning(BaseAlgorithm):
 
         q = self.current_agent(s_t)
         q = q.gather(1, a_t.unsqueeze(1)).squeeze(1)
-        next_q = self.current_agent(s_t_1).detach()
-        next_q = torch.amax(self.current_agent(s_t_1).detach(), dim=-1)
+        next_q = torch.amax(self.target_agent(s_t_1).detach(), dim=-1)
         target = r_t + self.discount * next_q * (1 - done_)
 
-        loss = F.smooth_l1_loss(q, target)
+        loss = - F.smooth_l1_loss(q, target)
 
         self.current_agent.zero_grad()
 
