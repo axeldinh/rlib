@@ -262,7 +262,7 @@ class DeepQLearning(BaseAlgorithm):
         plt.xlabel("Number of iterations")
         plt.ylabel("Reward")
         plt.legend()
-        plt.savefig(self.plots_folder + "/mean_test_rewards.png")
+        plt.savefig(self.plots_folder + "/mean_test_rewards.png", bbox_inches="tight")
         plt.close()
 
 
@@ -271,14 +271,14 @@ class DeepQLearning(BaseAlgorithm):
         plt.plot(x_range, self.episodes_lengths)
         plt.xlabel("Number of iterations")
         plt.ylabel("Episode length")
-        plt.savefig(self.plots_folder + "/episode_lengths.png")
+        plt.savefig(self.plots_folder + "/episode_lengths.png", bbox_inches="tight")
         plt.close()
 
         plt.plot(range(1, len(self.losses) * self.batch_size + 1, self.batch_size), self.losses)
         plt.xlabel("Number of iterations")
         plt.ylabel("Loss")
         plt.yscale("log")
-        plt.savefig(self.plots_folder + "/losses.png")
+        plt.savefig(self.plots_folder + "/losses.png", bbox_inches="tight")
         plt.close()
 
         print("Figures saved in ", self.plots_folder)
