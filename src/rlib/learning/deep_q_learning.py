@@ -26,7 +26,8 @@ class DeepQLearning(BaseAlgorithm):
             test_every=50_000,
             num_test_episodes=10,
             batch_size=64,
-            size_replay_buffer=50_000
+            size_replay_buffer=100_000,
+            max_grad_norm=10
             ):
         
         norm_env_fn = lambda render_mode=None: NormWrapper(env_fn(render_mode))
@@ -47,6 +48,7 @@ class DeepQLearning(BaseAlgorithm):
         self.num_test_episodes = num_test_episodes
         self.batch_size = batch_size
         self.size_replay_buffer = size_replay_buffer
+        self.max_norm = max_grad_norm
 
         self.current_time_step = 0
         self.current_agent = self.agent_fn()
@@ -97,6 +99,9 @@ class DeepQLearning(BaseAlgorithm):
 
             episode_reward += reward
 
+            if episode_reward >= self.max_total_reward:
+                done = True
+
             self.replay_buffer.append((state.copy(), action, reward, new_state.copy(), done))
 
             if self.current_time_step % self.update_every == 0:
@@ -112,6 +117,9 @@ class DeepQLearning(BaseAlgorithm):
 
             length_episode += 1
 
+            if length_episode >= self.max_episode_length:
+                done = True
+
             self.current_time_step += 1
 
             if test_progress:
@@ -124,6 +132,8 @@ class DeepQLearning(BaseAlgorithm):
                 description = f"Epsilon Greedy: {self.epsilon_greedy:.2f}"
                 if len(self.mean_test_rewards) > 0:
                     description += ", Test Reward: {:.2f}".format(self.mean_test_rewards[-1])
+                if len(self.losses) > 0:
+                    description += ", Loss: {:.2f}".format(self.losses[-1])
                 pbar.set_description(description)
 
             if done:
@@ -181,11 +191,13 @@ class DeepQLearning(BaseAlgorithm):
         next_q = torch.amax(self.target_agent(s_t_1).detach(), dim=-1)
         target = r_t + self.discount * next_q * (1 - done_)
 
-        loss = - F.smooth_l1_loss(q, target)
+        loss = F.smooth_l1_loss(q, target)
 
         self.current_agent.zero_grad()
 
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(self.current_agent.parameters(), self.max_norm)
 
         self.optimizer.step()
 
@@ -265,6 +277,7 @@ class DeepQLearning(BaseAlgorithm):
         plt.plot(range(1, len(self.losses) * self.batch_size + 1, self.batch_size), self.losses)
         plt.xlabel("Number of iterations")
         plt.ylabel("Loss")
+        plt.yscale("log")
         plt.savefig(self.plots_folder + "/losses.png")
         plt.close()
 
