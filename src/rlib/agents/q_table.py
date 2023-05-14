@@ -41,25 +41,46 @@ class QTable:
         
         """
 
-        self.min_values = env.observation_space.low.copy()
-        self.max_values = env.observation_space.high.copy()
-
-        # Warning if a value is not bounded
-        if np.any(self.min_values <= -1e10) or np.any(self.max_values >= 1e10):
-            print(WARNING+"Warning: the environment has infinite state space bounds. The QTable may not work properly.")
-            print("Min values: {}".format(self.min_values))
-            print("Max values: {}".format(self.max_values))
-            print("You may want to use an ObservationWrapper to limit the value range."+ENDC)
-
         # Check if the action space is discrete
         if not isinstance(env.action_space, gym.spaces.Discrete):
             raise ValueError("The action space must be discrete.")
-        
-        self.diff = self.max_values - self.min_values
-        self.grid_size = grid_size
-        self.state_size = env.observation_space.shape[0]
-        self.action_size = env.action_space.n
-        self.q_table = np.random.rand(*tuple([self.grid_size] * self.state_size + [self.action_size])) * 2 - 1
+
+        # Check if the environment is continuous
+        if not isinstance(env.observation_space, gym.spaces.Box):
+            self.observation_type = "discrete"
+        else:
+            self.observation_type = "continuous"
+
+        if self.observation_type == "discrete":
+            
+            observation_size = []
+
+            if isinstance(env.observation_space, gym.spaces.tuple.Tuple):
+                for space in env.observation_space:
+                    observation_size.append(space.n)
+
+            else:
+                observation_size.append(env.observation_space.n)
+
+            self.q_table = np.random.rand(*tuple(observation_size + [env.action_space.n])) * 2 - 1
+
+        else:
+
+            self.min_values = env.observation_space.low.copy()
+            self.max_values = env.observation_space.high.copy()
+
+            # Warning if a value is not bounded
+            if np.any(self.min_values <= -1e10) or np.any(self.max_values >= 1e10):
+                print(WARNING+"Warning: the environment has infinite state space bounds. The QTable may not work properly.")
+                print("Min values: {}".format(self.min_values))
+                print("Max values: {}".format(self.max_values))
+                print("You may want to use an ObservationWrapper to limit the value range."+ENDC)
+            
+            self.diff = self.max_values - self.min_values
+            self.grid_size = grid_size
+            self.state_size = env.observation_space.shape[0]
+            self.action_size = env.action_space.n
+            self.q_table = np.random.rand(*tuple([self.grid_size] * self.state_size + [self.action_size])) * 2 - 1
 
     def update(self, state, action, new_value):
         """
@@ -73,8 +94,8 @@ class QTable:
         :type new_value: float
         
         """
-        discretized_state = self.discretize(state)
-        self.q_table[discretized_state][action] = new_value
+        state_index = self.discretize(state)
+        self.q_table[state_index][action] = new_value
 
     def sample(self, state, action=None):
         """
@@ -89,11 +110,13 @@ class QTable:
         
         """
 
-        discretized_state = self.discretize(state)
+        state_index = self.discretize(state)
         if action is None:
-            return self.q_table[discretized_state]
+            if self.observation_type == "discrete":
+                return self.q_table[tuple(state_index)]
+            return self.q_table[state_index]
         else:
-            return self.q_table[discretized_state][action]
+            return self.q_table[state_index][action]
 
     def get_action(self, state):
         """
@@ -117,5 +140,7 @@ class QTable:
         :rtype: tuple
         
         """
+        if self.observation_type == "discrete":
+            return np.array(state, dtype=int)
         discretized_state = tuple(((state - self.min_values) / self.diff * (self.grid_size-1)).astype(int))
         return discretized_state
