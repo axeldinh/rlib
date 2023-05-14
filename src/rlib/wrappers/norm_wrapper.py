@@ -32,15 +32,3 @@ class NormWrapper(ObservationWrapper):
     def observation(self, observation):
         observation = (observation - self.min_values) / (self.max_values - self.min_values) * 2 - 1
         return observation
-
-if __name__ == "__main__":
-
-    env = gymnasium.make("CartPole-v1")
-    env = NormWrapper(env)
-
-    print(env.env.observation_space)
-    obs, _ = env.reset()
-    action = env.action_space.sample()
-    print(obs)
-    obs, reward, done, _, _ = env.step(action)
-    print(obs)
