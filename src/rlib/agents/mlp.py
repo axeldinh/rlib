@@ -31,7 +31,7 @@ class MLP(nn.Module):
 
     """
 
-    def __init__(self, input_size, hidden_sizes, output_size, activation='relu', params=None, requires_grad=False):
+    def __init__(self, input_size, hidden_sizes, output_size, activation='relu', params=None, requires_grad=False, type_actions='discrete', action_space=None):
         """
         Initialize the MLP.
 
@@ -52,6 +52,12 @@ class MLP(nn.Module):
         """
 
         super().__init__()
+
+        self.requires_grad = requires_grad
+        self.type_actions = type_actions
+
+        if self.type_actions == 'continuous':
+            self.action_space = action_space
 
         if activation == 'relu':
             activation = nn.ReLU
@@ -88,7 +94,15 @@ class MLP(nn.Module):
         :rtype: torch.Tensor
         """
 
-        return self.layers(x)
+        x = self.layers(x)
+
+        # if the actions are continous, transform the output of the MLP to be in the range of the action space
+        if self.type_actions == 'continuous':
+            x = torch.tanh(x)
+            x = (x + 1) / 2
+            x = x * (self.action_space.high - self.action_space.low) + self.action_space.low
+
+        return x
 
     def get_action(self, observation):
         """
@@ -101,7 +115,11 @@ class MLP(nn.Module):
         """
         observation = torch.tensor(observation).float()
         x = self(observation)
-        return torch.argmax(x).numpy()
+        if self.type_actions == 'discrete':
+            return torch.argmax(x).numpy()
+        else:
+            return x.detach().numpy()
+        
 
     def remove_grad(self):
         """
