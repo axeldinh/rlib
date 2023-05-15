@@ -99,7 +99,7 @@ class DeepQLearning(BaseAlgorithm):
 
             episode_reward += reward
 
-            if episode_reward >= self.max_total_reward:
+            if episode_reward >= self.max_total_reward and self.max_total_reward != -1:
                 done = True
 
             self.replay_buffer.append((state.copy(), action, reward, new_state.copy(), done))
@@ -117,7 +117,7 @@ class DeepQLearning(BaseAlgorithm):
 
             length_episode += 1
 
-            if length_episode >= self.max_episode_length:
+            if length_episode >= self.max_episode_length and self.max_episode_length != -1:
                 done = True
 
             self.current_time_step += 1
@@ -274,11 +274,19 @@ class DeepQLearning(BaseAlgorithm):
         plt.savefig(self.plots_folder + "/episode_lengths.png", bbox_inches="tight")
         plt.close()
 
+        plt.plot(x_range, self.train_rewards)
+        plt.xlabel("Number of iterations")
+        plt.ylabel("Reward")
+        plt.savefig(self.plots_folder + "/train_rewards.png", bbox_inches="tight")
+        plt.close()
+
         plt.plot(range(1, len(self.losses) * self.batch_size + 1, self.batch_size), self.losses)
         plt.xlabel("Number of iterations")
         plt.ylabel("Loss")
         plt.yscale("log")
         plt.savefig(self.plots_folder + "/losses.png", bbox_inches="tight")
         plt.close()
+
+
 
         print("Figures saved in ", self.plots_folder)
