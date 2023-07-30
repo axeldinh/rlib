@@ -1,9 +1,11 @@
 
 from abc import abstractclassmethod
 import os
+import gymnasium as gym
 import numpy as np
 from tqdm  import tqdm
 from rlib.utils import play_episode
+from rlib.wrappers import NormWrapper
 
 class BaseAlgorithm:
     """
@@ -24,10 +26,8 @@ class BaseAlgorithm:
         algorithm.train()
         algorithm.test()
 
-    :ivar env_fn: A function that returns an `gymnasium.ENV` environment. It should take one argument `render_mode`.
-    :vartype env_fn: function
-    :ivar agent_fn: A function that returns an agent, without arguments. It should have a `get_action(observation)` method.
-    :vartype agent_fn: function
+    :ivar env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+    :vartype env_kwargs: dict
     :ivar max_episode_length: Maximum number of steps taken to complete an episode.
     :vartype max_episode_length: int
     :ivar max_total_reward: Maximum reward achievable in one episode
@@ -45,29 +45,47 @@ class BaseAlgorithm:
     """
 
     def __init__(
-            self, env_fn, agent_fn,
+            self, env_kwargs,
             max_episode_length=-1, 
             max_total_reward=-1,
-            save_folder="results"
+            save_folder="results",
+            normalize_observation=False,
             ):
         """
         Base class for all the algorithms.
 
-        :param env_fn: A function that returns an `gymnasium.ENV` environment. It should take one argument `render_mode`.
-        :type env_fn: function
-        :param agent_fn: A function that returns an agent, without arguments. It should have a `get_action(observation)` method.
-        :type agent_fn: function
+        :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+        :type env_kwargs: dict
         :param max_episode_length: Maximum number of steps taken to complete an episode. Default is -1 (no limit)
         :type max_episode_length: int, optional
         :param max_total_reward: Maximum reward achievable in one episode. Default is -1 (no limit)
         :type max_total_reward: float, optional
         :param save_folder: The path of the folder where to save the results. Default is "results"
         :type save_folder: str, optional
+        :param normalize_observation: Whether to normalize the observation in `[-1, 1]`. Default is False
+        :type normalize_observation: bool, optional
 
         """
 
-        self.env_fn = env_fn
-        self.agent_fn = agent_fn
+        self.env_kwargs = env_kwargs
+        self.normalize_observation = normalize_observation
+        
+        env = self.make_env()
+        obs = env.reset()[0]
+        self.action_space = env.action_space
+
+        del env
+
+        self.obs_shape = obs.shape
+        if isinstance(self.action_space, gym.spaces.Discrete):
+            self.action_space_type = "discrete"
+            self.action_shape = (self.action_space.n,)
+        elif isinstance(self.action_space, gym.spaces.Box):
+            self.action_space_type = "continuous"
+            self.action_shape = self.action_space.shape
+        else:
+            raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
+
         self.max_episode_length = max_episode_length
         self.max_total_reward = max_total_reward
 
@@ -83,6 +101,15 @@ class BaseAlgorithm:
         self.plots_folder = os.path.join(self.save_folder, "plots")
 
         self.current_agent = None
+    
+    def make_env(self, render_mode=None):
+
+        env = gym.make(**self.env_kwargs, render_mode=render_mode)
+
+        if self.normalize_observation:
+            env = NormWrapper(env)
+
+        return env
 
     def _create_folders(self):
         os.makedirs(self.save_folder, exist_ok=True)
@@ -160,11 +187,11 @@ class BaseAlgorithm:
             raise ValueError("display and save_video cannot be True at the same time")
         
         if display:
-            env = self.env_fn(render_mode="human")
+            env = self.make_env(render_mode="human")
         elif save_video:
-            env = self.env_fn(render_mode="rgb_array")
+            env = self.make_env(render_mode="rgb_array")
         else:
-            env = self.env_fn(render_mode=None)
+            env = self.make_env(render_mode=None)
 
         rewards = []
 
