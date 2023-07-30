@@ -100,7 +100,7 @@ class MLP(nn.Module):
         if self.type_actions == 'continuous':
             x = torch.tanh(x)
             x = (x + 1) / 2
-            x = x * (self.action_space.high - self.action_space.low) + self.action_space.low
+            x = x * (torch.tensor(self.action_space.high) - torch.tensor(self.action_space.low)) + torch.tensor(self.action_space.low)
 
         return x
 
