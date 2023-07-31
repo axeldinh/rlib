@@ -1,15 +1,19 @@
 from collections import deque
+import datetime
+import os
+import time
 from tqdm import trange
 import numpy as np
 import torch
 import torch.nn .functional as F
 from .base_algorithm import BaseAlgorithm
-from rlib.wrappers import NormWrapper
+from rlib.agents import get_agent
+from rlib.learning.replay_buffer import ReplayBuffer
 
 class DeepQLearning(BaseAlgorithm):
 
     def __init__(
-            self, env_fn, agent_fn,
+            self, env_kwargs, agent_kwargs,
             max_episode_length=-1,
             max_total_reward=-1,
             save_folder="deep_qlearning",
@@ -27,13 +31,16 @@ class DeepQLearning(BaseAlgorithm):
             num_test_episodes=10,
             batch_size=64,
             size_replay_buffer=100_000,
-            max_grad_norm=10
+            max_grad_norm=10,
+            normalize_observation=False,
             ):
         
-        norm_env_fn = lambda render_mode=None: NormWrapper(env_fn(render_mode))
         
-        super().__init__(norm_env_fn, agent_fn, max_episode_length, max_total_reward, save_folder)
+        super().__init__(env_kwargs, 
+                         max_episode_length, max_total_reward, 
+                         save_folder, normalize_observation)
 
+        self.agent_kwargs = agent_kwargs
         self.lr = lr
         self.discount = discount
         self.epsilon_greedy = epsilon_greedy
@@ -48,11 +55,32 @@ class DeepQLearning(BaseAlgorithm):
         self.num_test_episodes = num_test_episodes
         self.batch_size = batch_size
         self.size_replay_buffer = size_replay_buffer
-        self.max_norm = max_grad_norm
+        self.max_grad_norm = max_grad_norm
 
         self.current_time_step = 0
-        self.current_agent = self.agent_fn()
-        self.target_agent = self.agent_fn()
+        self.running_average = []
+
+        if self.obs_shape.__len__() == 1:
+
+            num_obs = self.obs_shape[0]
+            num_actions = self.action_shape[0]
+
+            agent_kwargs['input_size'] = num_obs
+            agent_kwargs['output_size'] = num_actions
+            agent_kwargs['requires_grad'] = True
+
+            if self.action_space_type != "discrete":
+
+                raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space_type))
+            
+            self.current_agent = get_agent("mlp", agent_kwargs)
+            self.target_agent = get_agent("mlp", agent_kwargs)
+
+        elif self.obs_shape.__len__() in [2, 3]:
+            raise NotImplementedError("CNN not yet implemented, observations must be 1D.")
+        
+        else:
+            raise ValueError("Observations must be 1D, 2D or 3D. Current observations shape: {}".format(self.obs_shape))
 
         # Copy the parameters of the main model to the target model
         for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
@@ -65,27 +93,32 @@ class DeepQLearning(BaseAlgorithm):
         self.episodes_lengths = []
         
         # Store s_t, a_t, r_t, s_t+1, done
-        self.replay_buffer = deque(maxlen=self.size_replay_buffer)
+        self.replay_buffer = ReplayBuffer(max_size=self.size_replay_buffer)
 
         self.optimizer = torch.optim.Adam(self.current_agent.parameters(), lr=self.lr)
+
+        self.best_iteration = 0
+        self.best_test_reward = -np.inf
         
     def train_(self):
-
-        env = self.env_fn()
+        
+        env = self.make_env()
 
         self._populate_replay_buffer(env)
 
-        if self.verbose:
-            pbar = trange(self.num_time_steps)
-        else:
-            pbar = range(self.num_time_steps)
+        pbar = range(self.num_time_steps)
 
         state, _ = env.reset()
         done = False
         length_episode = 0
         episode_reward = 0
 
+        times = []
+        time_start = time.time()
+
         for n in pbar:
+
+            
 
             test_progress = (n+1) % self.test_every == 0
             test_progress += (n+1) == self.num_time_steps
@@ -102,7 +135,7 @@ class DeepQLearning(BaseAlgorithm):
             if episode_reward >= self.max_total_reward and self.max_total_reward != -1:
                 done = True
 
-            self.replay_buffer.append((state.copy(), action, reward, new_state.copy(), done))
+            self.replay_buffer.store(state.copy(), action, reward, new_state.copy(), done)
 
             if self.current_time_step % self.update_every == 0:
                 loss = self.update_weights()
@@ -126,15 +159,31 @@ class DeepQLearning(BaseAlgorithm):
                 mean, std = self.test(self.num_test_episodes)
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
+
+                if self.running_average.__len__() == 0:
+                    self.running_average.append(mean)
+                else:
+                    self.running_average.append(0.9 * self.running_average[-1] + 0.1 * mean)
+
+                if mean > self.best_test_reward:
+                    self.best_test_reward = mean
+                    self.best_iteration = self.current_time_step
+                    self.save(self.models_folder + "/best.pkl")
+
                 self.save(self.models_folder + f"/iter_{self.current_time_step}.pkl")
 
-            if self.verbose:
-                description = f"Epsilon Greedy: {self.epsilon_greedy:.2f}"
-                if len(self.mean_test_rewards) > 0:
-                    description += ", Test Reward: {:.2f}".format(self.mean_test_rewards[-1])
-                if len(self.losses) > 0:
-                    description += ", Loss: {:.2f}".format(self.losses[-1])
-                pbar.set_description(description)
+            if self.verbose and test_progress:
+                description = f"TimeStep: [{self.current_time_step}/{self.num_time_steps}]"
+                description += ", Test Reward: {:.2f} (+/- {:.2f})".format(self.mean_test_rewards[-1], self.std_test_rewards[-1])
+                description += ", Running Average: {:.2f}".format(self.running_average[-1])
+                times.append(time.time() - time_start)
+                total_time = np.mean(times) * self.num_time_steps / self.test_every
+                current_time = np.sum(times)
+                total_time = str(datetime.timedelta(seconds=int(total_time)))
+                current_time = str(datetime.timedelta(seconds=int(current_time)))
+                description = f", Time: [{self.current_time_step}/{self.num_time_steps}]"
+                print(description)
+                time_start = time.time()
 
             if done:
                 state, _ = env.reset()
@@ -143,6 +192,7 @@ class DeepQLearning(BaseAlgorithm):
                 self.train_rewards.append(episode_reward)
                 length_episode = 0
                 episode_reward = 0
+
 
     def _populate_replay_buffer(self, env):
 
@@ -155,7 +205,7 @@ class DeepQLearning(BaseAlgorithm):
             else:
                 action = self.target_agent.get_action(obs)
             new_obs, reward, done, _, _ = env.step(action)
-            self.replay_buffer.append((obs.copy(), action, reward, new_obs.copy(), done))
+            self.replay_buffer.store(obs.copy(), action, reward, new_obs.copy(), done)
             obs = new_obs
 
             if done:
@@ -170,21 +220,14 @@ class DeepQLearning(BaseAlgorithm):
 
 
     def update_weights(self):
-
-        batch = np.random.choice(len(self.replay_buffer), self.batch_size, replace=False)
-        batch = [self.replay_buffer[i] for i in batch]
         
-        s_t = [x[0] for x in batch]
-        a_t = [x[1] for x in batch]
-        r_t = [x[2] for x in batch]
-        s_t_1 = [x[3] for x in batch]
-        done_ = [int(x[4]) for x in batch]
-
-        s_t = torch.tensor(np.stack(s_t)).view(self.batch_size, -1)
-        a_t = torch.tensor(np.stack(a_t)).view(self.batch_size)
-        r_t = torch.tensor(np.stack(r_t)).view(self.batch_size)
-        s_t_1 = torch.tensor(np.stack(s_t_1)).view(self.batch_size, -1)
-        done_ = torch.tensor(np.stack(done_)).view(self.batch_size)
+        s_t, a_t, r_t, s_t_1, done_ = self.replay_buffer.sample(self.batch_size)
+        
+        s_t = torch.tensor(s_t)
+        a_t = torch.tensor(a_t)
+        r_t = torch.tensor(r_t).squeeze()
+        s_t_1 = torch.tensor(s_t_1)
+        done_ = torch.tensor(done_)
 
         q = self.current_agent(s_t)
         q = q.gather(1, a_t.unsqueeze(1)).squeeze(1)
@@ -197,7 +240,7 @@ class DeepQLearning(BaseAlgorithm):
 
         loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(self.current_agent.parameters(), self.max_norm)
+        torch.nn.utils.clip_grad_norm_(self.current_agent.parameters(), self.max_grad_norm)
 
         self.optimizer.step()
 
@@ -205,21 +248,61 @@ class DeepQLearning(BaseAlgorithm):
     
     def save(self, path):
 
-        data = {
+        dqn_kwargs = {
+            "env_kwargs": self.env_kwargs,
+            "agent_kwargs": self.agent_kwargs,
+            "max_episode_length": self.max_episode_length,
+            "max_total_reward": self.max_total_reward,
+            "save_folder": os.path.abspath(os.path.dirname(self.save_folder)),
             "lr": self.lr,
             "discount": self.discount,
             "epsilon_greedy": self.epsilon_greedy,
             "epsilon_decay": self.epsilon_decay,
             "epsilon_min": self.epsilon_min,
             "num_time_steps": self.num_time_steps,
+            "learning_starts": self.learning_starts,
+            "update_every": self.update_every,
+            "main_target_update": self.main_target_update,
             "verbose": self.verbose,
             "test_every": self.test_every,
             "num_test_episodes": self.num_test_episodes,
             "batch_size": self.batch_size,
+            "size_replay_buffer": self.size_replay_buffer,
+            "max_grad_norm": self.max_grad_norm,
+            "normalize_observation": self.normalize_observation
+        }
+
+        saving_folders = {
+            "save_folder": self.save_folder,
+            "models_folder": self.models_folder,
+            "plots_folder": self.plots_folder,
+            "videos_folder": self.videos_folder
+        }
+
+        model_parameters = {
+            "current_agent": self.current_agent.state_dict(),
+            "target_agent": self.target_agent.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+        }
+
+        running_results = {
             "current_time_step": self.current_time_step,
+            "running_average": self.running_average,
+            "losses": self.losses,
+            "train_rewards": self.train_rewards,
             "mean_test_rewards": self.mean_test_rewards,
             "std_test_rewards": self.std_test_rewards,
-            "current_agent": self.current_agent
+            "episodes_lengths": self.episodes_lengths,
+            "replay_buffer": self.replay_buffer,
+            "best_iteration": self.best_iteration,
+            "best_test_reward": self.best_test_reward
+        }
+
+        data = {
+            "dqn_kwargs": dqn_kwargs,
+            "saving_folders": saving_folders,
+            "model_parameters": model_parameters,
+            "running_results": running_results
         }
 
         torch.save(data, path)
@@ -228,22 +311,38 @@ class DeepQLearning(BaseAlgorithm):
 
         data = torch.load(path)
 
-        for key in data:
-            setattr(self, key, data[key])
+        self.__init__(**data['dqn_kwargs'])
+
+        for key in data['saving_folders'].keys():
+            setattr(self, key, data['saving_folders'][key])
+
+        self.load_model_parameters(data)
+
+        for key in data['running_results'].keys():
+            setattr(self, key, data['running_results'][key])
 
         if verbose:
-            print(f"Loaded model from {path}")
-            print(f"Current time step: {self.current_time_step}")
-            print("Discount: {:.2f}".format(self.discount))
-            print("Epsilon Greedy: {:.2f}".format(self.epsilon_greedy))
-            print("Epsilon Decay: {:.2f}".format(self.epsilon_decay))
-            print("Epsilon Min: {:.2f}".format(self.epsilon_min))
-            print("Learning Rate: {:.2f}".format(self.lr))
-            print("Batch Size: {:.2f}".format(self.batch_size))
-            print("Number of time steps: {:.2f}".format(self.num_time_steps))
-            print("Test every: {:.2f}".format(self.test_every))
-            print("Number of test episodes: {:.2f}".format(self.num_test_episodes))
-            print(f"Last test rewards: {self.mean_test_rewards[-1]:.2f} +/- {self.std_test_rewards[-1]:.2f}")
+            print("Model loaded from: ", path)
+            print(f"Current Iteration: [{self.current_time_step}/{self.num_time_steps}]")
+            print(f"Learning Rate: {self.lr}, Discount: {self.discount}")
+            print(f"Epsilon Greedy: {self.epsilon_greedy}, Epsilon Decay: {self.epsilon_decay}, Epsilon Min: {self.epsilon_min}")
+            print(f"Learning Starts: {self.learning_starts}, Update Every: {self.update_every}, Main Target Update: {self.main_target_update}")
+            print(f"Test Every: {self.test_every}, Num Test Episodes: {self.num_test_episodes}")
+            print(f"Batch Size: {self.batch_size}, Size Replay Buffer: {self.size_replay_buffer}")
+            print(f"Max Grad Norm: {self.max_grad_norm}, Normalize Observation: {self.normalize_observation}")
+            print(f"Best Iteration: {self.best_iteration}, Best Test Reward: {self.best_test_reward}")
+
+            print("Running Results:")
+            print(f"\tRunning Average: {self.running_average[-1]}")
+            print(f"\tTest Rewards: {self.mean_test_rewards[-1]} (+/- {self.std_test_rewards[-1]})")
+            print(f"\tLoss: {self.losses[-1]}")
+
+    def load_model_parameters(self, data):
+
+        self.current_agent.load_state_dict(data['model_parameters']['current_agent'])
+        self.target_agent.load_state_dict(data['model_parameters']['target_agent'])
+        self.optimizer.load_state_dict(data['model_parameters']['optimizer'])
+    
 
     def save_plots(self):
 
@@ -259,6 +358,7 @@ class DeepQLearning(BaseAlgorithm):
             np.array(self.mean_test_rewards) + np.array(self.std_test_rewards),
             alpha=0.5, color="red"
         )
+        plt.plot(x_range, self.running_average, c="blue", label="Running Average")
         plt.xlabel("Number of iterations")
         plt.ylabel("Reward")
         plt.legend()

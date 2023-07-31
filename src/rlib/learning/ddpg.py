@@ -376,10 +376,10 @@ class DDPG(BaseAlgorithm):
         }
 
         model_parameters = {
-            "current_agent_state_dict": self.current_agent.state_dict(),
-            "target_agent_state_dict": self.target_agent.state_dict(),
-            "mu_optimizer_state_dict": self.mu_optimizer.state_dict(),
-            "q_optimizer_state_dict": self.q_optimizer.state_dict(),
+            "current_agent": self.current_agent.state_dict(),
+            "target_agent": self.target_agent.state_dict(),
+            "mu_optimizer": self.mu_optimizer.state_dict(),
+            "q_optimizer": self.q_optimizer.state_dict(),
         }
 
         running_results = {
@@ -495,11 +495,8 @@ class DDPG(BaseAlgorithm):
         data = torch.load(path)
 
         model = DDPG(**data['ddpg_kwargs'])
-        model.current_agent.load_state_dict(data['model_parameters']['current_agent_state_dict'])
-        model.target_agent.load_state_dict(data['model_parameters']['target_agent_state_dict'])
-        model.mu_optimizer.load_state_dict(data['model_parameters']['mu_optimizer_state_dict'])
-        model.q_optimizer.load_state_dict(data['model_parameters']['q_optimizer_state_dict'])
-
+        model.load_model_parameters(data)
+        
         for key in data['running_results'].keys():
             setattr(model, key, data['running_results'][key])
 
@@ -507,7 +504,7 @@ class DDPG(BaseAlgorithm):
     
     def load_model_parameters(self, data):
 
-        self.current_agent.load_state_dict(data['model_parameters']['current_agent_state_dict'])
-        self.target_agent.load_state_dict(data['model_parameters']['target_agent_state_dict'])
-        self.mu_optimizer.load_state_dict(data['model_parameters']['mu_optimizer_state_dict'])
-        self.q_optimizer.load_state_dict(data['model_parameters']['q_optimizer_state_dict'])
+        self.current_agent.load_state_dict(data['model_parameters']['current_agent'])
+        self.target_agent.load_state_dict(data['model_parameters']['target_agent'])
+        self.mu_optimizer.load_state_dict(data['model_parameters']['mu_optimizer'])
+        self.q_optimizer.load_state_dict(data['model_parameters']['q_optimizer'])
