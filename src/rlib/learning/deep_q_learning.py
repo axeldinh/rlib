@@ -47,7 +47,7 @@ class DeepQLearning(BaseAlgorithm):
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.num_time_steps = num_time_steps
-        self.learning_starts = learning_starts
+        self.learning_starts = max(learning_starts, batch_size)
         self.update_every = update_every
         self.main_target_update = main_target_update
         self.verbose = verbose
@@ -68,13 +68,14 @@ class DeepQLearning(BaseAlgorithm):
             agent_kwargs['input_size'] = num_obs
             agent_kwargs['output_size'] = num_actions
             agent_kwargs['requires_grad'] = True
+            agent_kwargs['type_actions'] = self.action_space_type
 
             if self.action_space_type != "discrete":
 
                 raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space_type))
             
-            self.current_agent = get_agent("mlp", agent_kwargs)
-            self.target_agent = get_agent("mlp", agent_kwargs)
+            self.current_agent = get_agent("mlp", **agent_kwargs)
+            self.target_agent = get_agent("mlp", **agent_kwargs)
 
         elif self.obs_shape.__len__() in [2, 3]:
             raise NotImplementedError("CNN not yet implemented, observations must be 1D.")
@@ -117,8 +118,6 @@ class DeepQLearning(BaseAlgorithm):
         time_start = time.time()
 
         for n in pbar:
-
-            
 
             test_progress = (n+1) % self.test_every == 0
             test_progress += (n+1) == self.num_time_steps
@@ -181,7 +180,7 @@ class DeepQLearning(BaseAlgorithm):
                 current_time = np.sum(times)
                 total_time = str(datetime.timedelta(seconds=int(total_time)))
                 current_time = str(datetime.timedelta(seconds=int(current_time)))
-                description = f", Time: [{self.current_time_step}/{self.num_time_steps}]"
+                description += f", Time: [{self.current_time_step}/{self.num_time_steps}]"
                 print(description)
                 time_start = time.time()
 
@@ -200,6 +199,10 @@ class DeepQLearning(BaseAlgorithm):
         done = False
 
         while len(self.replay_buffer) < self.learning_starts:
+
+            if len(self.replay_buffer) >= self.size_replay_buffer:
+                break
+
             if np.random.rand() < self.epsilon_greedy:
                 action = env.action_space.sample()
             else:
@@ -212,9 +215,6 @@ class DeepQLearning(BaseAlgorithm):
                 obs, _ = env.reset()
                 done = False
 
-            if len(self.replay_buffer) >= self.size_replay_buffer:
-                break
-
         if self.verbose:
             print(f"Replay buffer populated with {len(self.replay_buffer)} samples.")
 
@@ -224,13 +224,13 @@ class DeepQLearning(BaseAlgorithm):
         s_t, a_t, r_t, s_t_1, done_ = self.replay_buffer.sample(self.batch_size)
         
         s_t = torch.tensor(s_t)
-        a_t = torch.tensor(a_t)
+        a_t = torch.tensor(a_t).type(torch.int64)
         r_t = torch.tensor(r_t).squeeze()
         s_t_1 = torch.tensor(s_t_1)
-        done_ = torch.tensor(done_)
+        done_ = torch.tensor(done_).squeeze()
 
         q = self.current_agent(s_t)
-        q = q.gather(1, a_t.unsqueeze(1)).squeeze(1)
+        q = q.gather(1, a_t).squeeze(1)
         next_q = torch.amax(self.target_agent(s_t_1).detach(), dim=-1)
         target = r_t + self.discount * next_q * (1 - done_)
 
