@@ -36,3 +36,7 @@ class ReplayBuffer:
         indices = np.random.randint(0, self.size, size=batch_size)
 
         return self.states[indices], self.actions[indices], self.rewards[indices], self.next_states[indices], self.dones[indices]
+
+    def __len__(self):
+
+        return self.size
