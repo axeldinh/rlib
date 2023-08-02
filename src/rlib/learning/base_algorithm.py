@@ -16,15 +16,15 @@ class BaseAlgorithm:
     .. code-block:: python
 
         import gymnasium
-        from rlib.learning import Algorithm
-        from rlib.agents import Agent
+        from rlib.learning import DeepQLearning
 
-        env_fn = lambda render_mode=None: gymnasium.make('CartPole-v1', render_mode=render_mode)
-        agent_fn = Agent
-        model = Algorithm(env_fn, agent_fn, **kwargs)  # kwargs are specific to the algorithm
+        env_kwargs = {"env_name": "CartPole-v1"}
+        agent_kwargs = {"hidden_sizes": "[200, 200]"}
 
-        algorithm.train()
-        algorithm.test()
+        model = DeepQLearning(env_kwargs, agent_kwargs)
+
+        model.train()
+        model.test()
 
     :ivar env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
     :vartype env_kwargs: dict
@@ -41,6 +41,10 @@ class BaseAlgorithm:
     :ivar plots_folder: The path of the folder where to save the plots
     :vartype plots_folder: str
     :ivar current_agent: The current agent used by the algorithm
+    :ivar env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+    :vartype env_kwargs: dict
+    :ivar normalize_observation: Whether to normalize the observation in `[-1, 1]`
+    :vartype normalize_observation: bool
 
     """
 
@@ -69,7 +73,10 @@ class BaseAlgorithm:
 
         self.env_kwargs = env_kwargs
         self.normalize_observation = normalize_observation
+        self.max_episode_length = max_episode_length
+        self.max_total_reward = max_total_reward
         
+        # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
         env = self.make_env()
         obs = env.reset()[0]
         self.action_space = env.action_space
@@ -86,9 +93,6 @@ class BaseAlgorithm:
         else:
             raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
 
-        self.max_episode_length = max_episode_length
-        self.max_total_reward = max_total_reward
-
         self.save_folder = save_folder
         run_number = 0
         if os.path.exists(self.save_folder):
@@ -103,6 +107,10 @@ class BaseAlgorithm:
         self.current_agent = None
     
     def make_env(self, render_mode=None):
+        """ Returns an instance of the environment, with the desired render mode.
+        :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
+        :type render_mode: str, optional
+        """
 
         env = gym.make(**self.env_kwargs, render_mode=render_mode)
 
@@ -112,6 +120,8 @@ class BaseAlgorithm:
         return env
 
     def _create_folders(self):
+        """ Creates the folders for saving the results.
+        """
         os.makedirs(self.save_folder, exist_ok=True)
         os.makedirs(self.videos_folder, exist_ok=True)
         os.makedirs(self.models_folder, exist_ok=True)
@@ -125,13 +135,14 @@ class BaseAlgorithm:
         raise NotImplementedError
     
     def train(self):
+        """ Default training method, with a sanity on the creation of the folders.
+        """
         self._create_folders()
         self.train_()
 
     @abstractclassmethod
     def save(self, path):
-        """
-        Save the current agent to the given path.
+        """ Save the current agent to the given path.
 
         :param path: The path to save the agent to.
         :type path: str
@@ -141,8 +152,7 @@ class BaseAlgorithm:
     
     @abstractclassmethod
     def load(self, path):
-        """
-        Load the agent from the given path. 
+        """ Load the agent from the given path. 
         
         Note that only the agent is loaded, not the environment, 
         nor the training parameters.
@@ -154,8 +164,7 @@ class BaseAlgorithm:
         raise NotImplementedError
     
     def save_plots(self):
-        """
-        Save the plots of the training.
+        """ Save the plots of the training.
 
         The plots are saved in the plots folder :attr:`plots_folder`.
         
@@ -163,8 +172,7 @@ class BaseAlgorithm:
         raise NotImplementedError
     
     def test(self, num_episodes=1, display=False, save_video=False, video_path=None):
-        """
-        Test the current agent on the environment.
+        """ Test the current agent on the environment.
 
         :param num_episodes: The number of episodes to test the agent on, by default 1.
         :type num_episodes: int, optional
@@ -208,14 +216,14 @@ class BaseAlgorithm:
         return np.mean(rewards), np.std(rewards)
 
     def save_videos(self):
-        """
-        Save videos of the models saved at testing iterations.
+        """ Saves videos of the models saved at testing iterations.
 
-        The videos are saved in the videos of the saving folder :attr:`save_folder`.
+        The videos are saved in the saving folder :attr:`save_folder`.
         """
 
-        # Random number to avoid overwriting
+        # Random number to avoid overwriting when multiple instances are running
         key = np.random.randint(0, 1000000)
+        # Saving the current agent
         self.save(f".tmp{key}.pkl")
 
         print("Saving videos from previous iterations...")
