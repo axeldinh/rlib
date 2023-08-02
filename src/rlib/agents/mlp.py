@@ -48,6 +48,10 @@ class MLP(nn.Module):
         :param requires_grad: Whether to compute the gradient of the MLP. Default is False.
         :type requires_grad: bool, optional
         :raises ValueError: If `activation` is not one of 'relu', 'tanh' or 'sigmoid'.
+        :param type_actions: The type of the actions. Should be one of 'discrete' or 'continuous'. Default is 'discrete'. If 'continuous', the output of the MLP is transformed to be in the range of the action space.
+        :type type_actions: str, optional
+        :param action_space: The action space of the environment. Default is None.
+        :type action_space: gym.spaces.Box, optional
 
         """
 
