@@ -10,7 +10,9 @@ Algorithms Available
 
     * :class:`BaseAlgorithm<learning.base_algorithm.BaseAlgorithm>`
     * :class:`EvolutionStrategy<learning.evolution_strategy.EvolutionStrategy>`
-    * :class:`QLearning<learning.q_learning.QLearning>`
+    * :class:`Q-Learning<learning.q_learning.QLearning>`
+    * :class:`Deep Q-Learning<learning.deep_q_learning.DeepQLearning>`
+    * :class:`Deep Deterministic Policy Gradient<learning.ddpg.DDPG>`
 
 Usage
 -----
@@ -47,6 +49,7 @@ by our implementations:
     .. automethod:: learning.base_algorithm.BaseAlgorithm.load
     .. automethod:: learning.base_algorithm.BaseAlgorithm.save_plots
     .. automethod:: learning.base_algorithm.BaseAlgorithm.save_videos
+    .. automethod:: learning.base_algorithm.BaseAlgorithm.load_model_parameters
 
 
 EvolutionStrategy
@@ -64,3 +67,25 @@ QLearning
 ---------
 
 .. autoclass:: learning.q_learning.QLearning
+
+    .. automethod:: learning.q_learning.QLearning.__init__
+
+
+Deep Q-Learning
+---------------
+
+.. autoclass:: learning.deep_q_learning.DeepQLearning
+
+    .. automethod:: learning.deep_q_learning.DeepQLearning.__init__
+    .. automethod:: learning.deep_q_learning.DeepQLearning._populate_replay_buffer
+    .. automethod:: learning.deep_q_learning.DeepQLearning.update_weights
+
+Deep Deterministic Policy Gradient
+----------------------------------
+
+.. autoclass:: learning.ddpg.DDPG
+
+    .. automethod:: learning.ddpg.DDPG.__init__
+    .. automethod:: learning.ddpg.DDPG._update_target_weights
+    .. automethod:: learning.ddpg.DDPG._populate_replay_buffer
+    .. automethod:: learning.ddpg.DDPG.update_weights

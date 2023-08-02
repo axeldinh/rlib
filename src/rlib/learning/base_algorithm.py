@@ -245,3 +245,13 @@ class BaseAlgorithm:
 
         self.load(f".tmp{key}.pkl", verbose=False)
         os.remove(f".tmp{key}.pkl")
+
+    @abstractclassmethod
+    def load_model_parameters(self, data):
+        """ Load the model parameters from the given data.
+
+        :param data: The data to load the model parameters from should be the data contained in the file saved when :func:`save` is used.
+        :type data: dict
+
+        """
+        raise NotImplementedError

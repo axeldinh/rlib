@@ -11,6 +11,45 @@ from rlib.agents import get_agent
 from rlib.learning.replay_buffer import ReplayBuffer
 
 class DeepQLearning(BaseAlgorithm):
+    """
+    Deep Q-Learning algorithm.
+
+    The Q-Table is replaced by a neural network that approximates the Q-Table.
+
+    The neural network is updated using the following formula:
+
+    .. math::
+
+        Q(s_t, a_t) = Q(s_t, a_t) + \\alpha \\left(r_{t+1} + \\gamma \\max_{a} Q(s_{t+1}, a) - Q(s_t, a_t) \\right)
+
+    where :math:`\\alpha` is the learning rate and :math:`\\gamma` the discount factor.
+
+    Hence, the method is only suitable for discrete action spaces.
+
+    An epsilon greedy policy is used to select the actions, and the actions are stored in a :class:`ReplayBuffer` 
+    before being used to update the neural network.
+
+    Example:
+
+    .. code-block::
+
+        import gymnasium as gym
+        from rlib.learning import DeepQLearning
+        
+        env_kwargs = {'id': 'CartPole-v1'}
+        agent_kwargs = {'hidden_sizes': [10]}
+
+        model = DeepQLearning(
+            env_kwargs, agent_kwargs,
+            lr=0.03, discount=0.99,
+            epsilon_greedy=0.1, epsilon_decay=0.9999, epsilon_min=0.01
+            )
+
+        model.train()
+        model.test()
+        model.save_plots()
+
+    """
 
     def __init__(
             self, env_kwargs, agent_kwargs,
@@ -34,6 +73,54 @@ class DeepQLearning(BaseAlgorithm):
             max_grad_norm=10,
             normalize_observation=False,
             ):
+        """
+        Initializes the DeepQLearning algorithm.
+
+        :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+        :type env_kwargs: dict
+        :param agent_kwargs: The kwargs for calling `get_agent(agent_type, **agent_kwargs)`.
+        :type agent_kwargs: dict
+        :param max_episode_length: The maximum length of an episode, by default -1 (no limit).
+        :type max_episode_length: int, optional
+        :param max_total_reward: The maximum total reward to get in the episode, by default -1 (no limit).
+        :type max_total_reward: float, optional
+        :param save_folder: The folder where to save the model, by default "deep_qlearning".
+        :type save_folder: str, optional
+        :param lr: The learning rate, by default 3e-4.
+        :type lr: float, optional
+        :param discount: The discount factor, by default 0.99.
+        :type discount: float, optional
+        :param epsilon_greedy: The probability to take a random action, by default 0.1.
+        :type epsilon_greedy: float, optional
+        :param epsilon_decay: The decay of the epsilon greedy, by default 0.99.
+        :type epsilon_decay: float, optional
+        :param epsilon_min: The minimum value of epsilon greedy, by default 0.01.
+        :type epsilon_min: float, optional
+        :param num_time_steps: The number of time steps to train the agent, by default 100_000.
+        :type num_time_steps: int, optional
+        :param learning_starts: The number of time steps before starting to train the agent, by default 50_000.
+        :type learning_starts: int, optional
+        :param update_every: The number of time steps between each update of the neural network, by default 4.
+        :type update_every: int, optional
+        :param main_target_update: The number of time steps between each update of the target network, by default 100.
+        :type main_target_update: int, optional
+        :param verbose: Whether to print the results, by default True.
+        :type verbose: bool, optional
+        :param test_every: The number of time steps between each test, by default 50_000.
+        :type test_every: int, optional
+        :param num_test_episodes: The number of episodes to test the agent, by default 10.
+        :type num_test_episodes: int, optional
+        :param batch_size: The batch size, by default 64.
+        :type batch_size: int, optional
+        :param size_replay_buffer: The size of the replay buffer, by default 100_000.
+        :type size_replay_buffer: int, optional
+        :param max_grad_norm: The maximum norm of the gradients, by default 10.
+        :type max_grad_norm: int, optional
+        :param normalize_observation: Whether to normalize the observation in `[-1, 1]`, by default False.
+        :type normalize_observation: bool, optional
+
+        """
+
         
         
         super().__init__(env_kwargs, 
@@ -105,7 +192,7 @@ class DeepQLearning(BaseAlgorithm):
         
         env = self.make_env()
 
-        self._populate_replay_buffer(env)
+        self._populate_replay_buffer(env)  # Populate the replay buffer with random samples
 
         pbar = range(self.num_time_steps)
 
@@ -145,6 +232,7 @@ class DeepQLearning(BaseAlgorithm):
 
             state = new_state
             
+            # Update epsilon greedy, to take less random actions
             self.epsilon_greedy = max(self.epsilon_min, self.epsilon_greedy * self.epsilon_decay)
 
             length_episode += 1
@@ -192,8 +280,16 @@ class DeepQLearning(BaseAlgorithm):
                 length_episode = 0
                 episode_reward = 0
 
-
     def _populate_replay_buffer(self, env):
+        """
+        Populate the replay buffer with random samples from the environment.
+
+        This is done until the replay buffer is filled with :attr:`learning_starts` samples.
+        Furthermore, the actions are sampled randomly with probability :attr:`epsilon_greedy`.
+
+        :param env: The environment to sample from.
+        :type env: gymnasium.ENV
+        """
 
         obs, _ = env.reset()
         done = False
@@ -218,8 +314,13 @@ class DeepQLearning(BaseAlgorithm):
         if self.verbose:
             print(f"Replay buffer populated with {len(self.replay_buffer)} samples.")
 
-
     def update_weights(self):
+        """
+        Update the weights of the neural network.
+        
+        From the ::attr:`replay_buffer`, a batch of size :attr:`batch_size` is used to update the weights of the neural network using the following loss:
+
+        """
         
         s_t, a_t, r_t, s_t_1, done_ = self.replay_buffer.sample(self.batch_size)
         
@@ -343,7 +444,6 @@ class DeepQLearning(BaseAlgorithm):
         self.target_agent.load_state_dict(data['model_parameters']['target_agent'])
         self.optimizer.load_state_dict(data['model_parameters']['optimizer'])
     
-
     def save_plots(self):
 
         import matplotlib.pyplot as plt

@@ -12,6 +12,12 @@ from .replay_buffer import ReplayBuffer
 
 
 class DDPGAgent(torch.nn.Module):
+    """
+    Agent used for the Deep Deterministic Policy Gradient algorithm.
+
+    For this agent, two neural networks are used: one for the policy and one for the Q-function.
+    Additionally, if `twin_q=True`, two Q-functions are used, as detailed in the `TD3 paper <https://arxiv.org/pdf/1802.09477.pdf>`_.
+    """
 
     def __init__(self, mu, q, twin_q=False):
 
@@ -34,6 +40,40 @@ class DDPGAgent(torch.nn.Module):
 
 
 class DDPG(BaseAlgorithm):
+    """
+    Implementation of the `Deep Deterministic Policy Gradient algorithm <https://arxiv.org/abs/1509.02971>`_ with options to use the improvements from `TD3 <https://arxiv.org/abs/1802.09477>`_.
+
+    Here, a Policy agent :math:`\mu(s)` and a Q-function agent :math:`Q(s, a)` are used.
+    :math:`\mu(s)` is trained to maximize :math:`Q(s, \mu(s))` and :math:`Q(s, a)` is trained to minimize :math:`(Q(s, a) - (r + \gamma Q(s', \mu(s'))))^2`.
+
+    Because of the nature of the problem, including the fact that :math:`\mu(s)` should be differentiable, only 
+    environments with continuous action spaces are supported.
+
+    For the TD3 improvements, two Q-functions are used, and the policy is updated less frequently.
+
+    Example:
+    
+    .. code-block::
+
+        from rlib.learning import DDPG
+        import gymnasium as gym
+
+        env_kwargs = {'id': 'BipedalWalker-v3', 'hardcore': False}
+        mu_kwargs = {'hidden_sizes': [256, 256]}
+        q_kwargs = {'hidden_sizes': [256, 256]}
+
+        model = DDPG(
+            env_kwargs, mu_kwargs, q_kwargs,
+            max_episode_length=1600, max_total_reward=-1,
+            save_folder="ddpg", q_lr=3e-4, mu_lr=3e-4,
+            action_noise=0.1, target_noise=0.2, delay_policy_update=2,
+            twin_q=True, discount=0.99, num_episodes=2_000,
+            learning_starts=0, target_update_tau=0.005,
+        )
+
+        model.train()
+        model.test()
+    """
 
     def __init__(
             self, env_kwargs, mu_kwargs, q_kwargs,
@@ -58,6 +98,59 @@ class DDPG(BaseAlgorithm):
             max_grad_norm=10,
             normalize_observation=False
             ):
+        """
+        Initializes the DDPG algorithm.
+
+        :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+        :type env_kwargs: dict
+        :param mu_kwargs: The kwargs for the policy agent.
+        :type mu_kwargs: dict
+        :param q_kwargs: The kwargs for the Q-function agent.
+        :type q_kwargs: dict
+        :param max_episode_length: The maximum length of an episode, by default -1 (no limit).
+        :type max_episode_length: int, optional
+        :param max_total_reward: The maximum total reward to get in the episode, by default -1 (no limit).
+        :type max_total_reward: float, optional
+        :param save_folder: The folder where to save the models, plots and videos, by default "ddpg".
+        :type save_folder: str, optional
+        :param q_lr: The learning rate for the Q-function agent, by default 3e-4.
+        :type q_lr: float, optional
+        :param mu_lr: The learning rate for the policy agent, by default 3e-4.
+        :type mu_lr: float, optional
+        :param action_noise: The noise added during population of the replay buffer, by default 0.1.
+        :type action_noise: float, optional
+        :param target_noise: The noise added to target actions, by default 0.2.
+        :type target_noise: float, optional
+        :param delay_policy_update: The number of Q-function updates before updating the policy, by default 2.
+        :type delay_policy_update: int, optional
+        :param twin_q: Whether to use two Q-functions, by default True.
+        :type twin_q: bool, optional
+        :param discount: The discount factor, by default 0.99.
+        :type discount: float, optional
+        :param num_episodes: The number of episodes to train, by default 1000.
+        :type num_episodes: int, optional
+        :param learning_starts: The number of random samples in the replay buffer before training, by default 50_000.
+        :type learning_starts: int, optional
+        :param target_update_tau: The percentage of weights to copy from the main model to the target model, by default 0.01.
+        :type target_update_tau: float, optional
+        :param verbose: Whether to print the progress, by default True.
+        :type verbose: bool, optional
+        :param test_every: The number of episodes between each test, by default 50_000.
+        :type test_every: int, optional
+        :param num_test_episodes: The number of episodes to test, by default 10.
+        :type num_test_episodes: int, optional
+        :param batch_size: The batch size for training, by default 64.
+        :type batch_size: int, optional
+        :param size_replay_buffer: The size of the replay buffer, by default 100_000.
+        :type size_replay_buffer: int, optional
+        :param max_grad_norm: The maximum norm of the gradients, by default 10.
+        :type max_grad_norm: int, optional
+        :param normalize_observation: Whether to normalize the observations, by default False.
+        :type normalize_observation: bool, optional
+        :raises ValueError: If the action space is not continuous.
+        :raises NotImplementedError: If the observation space is not 1D, 2D or 3D.
+
+        """
                         
         super().__init__(env_kwargs, 
                          max_episode_length, max_total_reward, 
@@ -167,7 +260,7 @@ class DDPG(BaseAlgorithm):
             episode_reward = 0
 
             while not done:
-                
+
                 action = self.current_agent.get_action(state)
                 action += np.random.randn(*action.shape) * self.action_noise
                 action = np.clip(action,
@@ -238,6 +331,16 @@ class DDPG(BaseAlgorithm):
             times.append(run_time)
                 
     def _update_target_weights(self, tau=0.01):
+        """
+        Updates the target weights using the current weights.
+
+        It uses the formula:
+
+        .. math::
+
+            \\theta_{target} = \\tau \\theta_{current} + (1 - \\tau) \\theta_{target}
+
+        """
         # Update Q Network weights 
         for target_param, param in zip(self.target_agent.q.parameters(), self.current_agent.q.parameters()):
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
@@ -254,6 +357,12 @@ class DDPG(BaseAlgorithm):
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
     def _populate_replay_buffer(self, env):
+        """
+        Plays random actions in the environment to populate the replay buffer, until the number of samples is equal to `learning_starts`.
+
+        :param env: The environment to use.
+        :type env: gymnasium.ENV
+        """
 
         obs, _ = env.reset()
         done = False
@@ -276,6 +385,9 @@ class DDPG(BaseAlgorithm):
             print(f"Replay buffer populated with {self.replay_buffer.size} samples.")
 
     def update_weights(self):
+        """
+        Updates the neural networks using the replay buffer.
+        """
 
         s_t, a_t, r_t, s_t_1, done_ = self.replay_buffer.sample(self.batch_size)
 

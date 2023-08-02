@@ -10,6 +10,12 @@ Available Agents:
  * :class:`QTable<agents.q_table.QTable>`
  * :class:`MLP<agents.mlp.MLP>`
 
+A function is given to create an agent from a configuration dictionary:
+
+.. autofunction:: rlib.agents.get_agent
+
+This is useful for saving and loading agents automatically from file.
+
 QTable
 ------
 
