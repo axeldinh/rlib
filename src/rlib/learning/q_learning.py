@@ -42,7 +42,7 @@ class QLearning(BaseAlgorithm):
     """
 
     def __init__(
-            self, env_fn, agent_fn,
+            self, env_kwargs, agent_fn,
             max_episode_length=-1, max_total_reward=-1,
             save_folder="qlearning", num_iterations=1000,
             lr=0.03, discount=0.99, epsilon_greedy=0.9, epsilon_decay=0.9999, epsilon_min=0.01,
@@ -51,7 +51,8 @@ class QLearning(BaseAlgorithm):
         """
         Initialize the QLearning algorithm.
 
-        :param env_fn: The function to create the environment.
+        :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+        :type env_kwargs: dict
         :param agent_fn: The function to create the agent, should be a QTable with a sample(state, action) method and get_action(state) method.
         :param max_episode_length: The maximum length of an episode, by default -1 (no limit).
         :type max_episode_length: int, optional
@@ -79,8 +80,9 @@ class QLearning(BaseAlgorithm):
         :type verbose: bool, optional
 
         """
-        super().__init__(env_fn, agent_fn, max_episode_length, max_total_reward, save_folder)
+        super().__init__(env_kwargs, agent_fn, max_episode_length, max_total_reward, save_folder)
 
+        self.env_kwargs = env_kwargs
         self.lr = lr
         self.discount = discount
         self.epsilon_greedy = epsilon_greedy
@@ -100,7 +102,7 @@ class QLearning(BaseAlgorithm):
 
     def train_(self):
 
-        env = self.env_fn()
+        env = self.make_env()
 
         if self.verbose:
             pbar = trange(self.num_iterations)

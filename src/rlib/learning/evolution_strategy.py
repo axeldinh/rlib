@@ -8,7 +8,6 @@ import torch
 
 from .base_algorithm import BaseAlgorithm
 from rlib.utils import play_episode
-from rlib.wrappers import NormWrapper
 
 class EvolutionStrategy(BaseAlgorithm):
     """ Implementation of the Evolution Strategy algorithm.
@@ -64,18 +63,19 @@ class EvolutionStrategy(BaseAlgorithm):
     """
     
     def __init__(
-            self, env_fn, agent_fn, num_agents=30,
+            self, env_kwargs, agent_fn, num_agents=30,
             num_iterations=300, lr=0.03, sigma=0.1,
             test_every=50, num_test_episodes=5, max_episode_length=-1, 
             max_total_reward=-1, save_folder="evolution_strategy",
             stop_max_score=False,
-            verbose=True
+            verbose=True,
+            normalize_observation=False,
             ):
         """
         Initialize the Evolution Strategy algorithm.
 
-        :param env_fn: A function that returns an `gymnasium.ENV` environment. It should take one argument `render_mode`.
-        :type env_fn: function
+        :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
+        :type env_kwargs: dict
         :param agent_fn: A function that returns an agent, without arguments. It should have a `get_action(observation)` method. Here, the agent should also have a `set_params(params)` method and a `get_params()` method, where `params` is a dictionary of parameters (like in `PyTorch`).
         :type agent_fn: function
         :param num_agents: The number of agents to use to compute the gradient, by default 30
@@ -106,12 +106,11 @@ class EvolutionStrategy(BaseAlgorithm):
 
         """
 
-        # Normalize the observation in [-1, 1]
-        norm_env_fn = lambda render_mode: NormWrapper(env_fn(render_mode))
+        super().__init__(env_kwargs, agent_fn, max_episode_length=max_episode_length, 
+                         max_total_reward=max_total_reward, save_folder=save_folder,
+                         normalize_observation=normalize_observation)
 
-        super().__init__(norm_env_fn, agent_fn, max_episode_length=max_episode_length, 
-                         max_total_reward=max_total_reward, save_folder=save_folder)
-
+        self.env_kwargs = env_kwargs
         self.num_agents = num_agents
         self.num_iterations = num_iterations
         self.lr = lr
@@ -235,7 +234,7 @@ class EvolutionStrategy(BaseAlgorithm):
 
     def train_(self):
 
-        env = self.env_fn(render_mode=None)
+        env = self.make_env()
         
         params_agent = self.current_agent.get_params()
         agent = self.agent_fn()
