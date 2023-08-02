@@ -18,6 +18,28 @@ class QTable:
 
     where :math:`\\gamma` is the discount factor, :math:`T` the end of the episode, :math:`s_t` the state at time :math:`t` and :math:`a_t` the action at time :math:`t`.
 
+    Example:
+
+    .. code-block:: python
+
+        from rlib.agents import QTable
+        import gymnasium as gym
+
+        env = gym.make("CartPole-v1")
+
+        q_table = QTable(env, grid_size=10)  # 10 discretization for each dimension of the state space
+        state = env.reset()
+        action = agent.get_action(state)
+
+        q_table.update(state, action, 0.5)  # update the Q-Table with the new value
+
+        q_s_a = q_table.sample(state, action)  # sample the Q-Table for the given state-action pair
+
+        q_s = q_table.sample(state)  # sample the Q-Table for the given state
+
+        best_action = np.argmax(q_s)  # get the best action to take from the given state
+        best_action = q_table.get_action(state)  # equivalent to the previous line
+
     :ivar grid_size: number of discretization for each dimension of the state space.
     :vartype grid_size: int
     :ivar state_size: size of the state space.
@@ -99,7 +121,7 @@ class QTable:
 
     def sample(self, state, action=None):
         """
-        Sample the QTable
+        Sample the QTable, if no action is given return the Q-values for each action, otherwise return the Q-value for the given action.
 
         :param state: current state
         :param action: action to take
