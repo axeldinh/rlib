@@ -46,7 +46,7 @@ class PPO(BaseAlgorithm):
         else:
             raise NotImplementedError("PPO only supports 1D observations currently.")
         
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_kwargs["lr"])
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_kwargs["lr"])
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_kwargs["lr"], maximize=True)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_kwargs["lr"], maximize=True)
 
         
