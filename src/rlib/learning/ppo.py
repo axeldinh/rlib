@@ -251,6 +251,18 @@ class PPO(BaseAlgorithm):
 
             next_state, reward, done, _, _ = env.step(action.numpy())
 
+            state = next_state
+            iters += 1
+
+            episode_length += 1
+            episode_reward += reward
+
+            if episode_length >= self.max_episode_length and self.max_episode_length != -1:
+                done = True
+
+            if episode_reward >= self.max_total_reward and self.max_total_reward != -1:
+                done = True
+
             states.append(state)
             actions.append(action)
             rewards.append(reward)
@@ -258,19 +270,12 @@ class PPO(BaseAlgorithm):
             values.append(value)
             log_probs.append(log_prob)
 
-            state = next_state
-            iters += 1
-
-            episode_length += 1
-            episode_reward += reward
-
-            if episode_length >= self.max_episode_length or episode_reward >= self.max_total_reward:
-                done = True
-
             if done:
                 state, _ = env.reset()
                 done = False
                 self.current_episode += 1
+                episode_length = 0
+                episode_reward = 0
 
                 if iters >= self.update_every_n_steps:
                     break
@@ -364,56 +369,19 @@ class PPO(BaseAlgorithm):
                         break
 
         return policy_loss.item(), value_loss.item()
-
-    def update_policy(self, states, actions, log_probs, gaes):
-
-        for _ in range(self.n_updates):
-
-            self.optimizer.zero_grad()
-
-            new_logits = self.current_agent.policy(states)
-            new_distribution = Categorical(logits=new_logits)
-            new_log_probs = new_distribution.log_prob(actions)
-
-            ratio = torch.exp(new_log_probs - log_probs)
-            clipped_ratio = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon)
-            clipped_loss = torch.min(ratio * gaes, clipped_ratio * gaes)
-
-            policy_loss = torch.mean(clipped_loss)
-            policy_loss.backward()
-            self.optimizer.step()
-
-            kl_divergence = torch.mean(log_probs - new_log_probs)
-            if torch.abs(kl_divergence) > 0.01:
-                break
-
-        return policy_loss.item()
     
-    def update_value(self, states, returns):
-
-        for _ in range(self.n_updates):
-
-            self.value_optimizer.zero_grad()
-
-            values = self.current_agent.value(states)
-            value_loss = torch.mean((values - returns) ** 2)
-            value_loss.backward()
-            self.value_optimizer.step()
-
-        return value_loss.item()
-
 
 if __name__ == "__main__":
 
     #env_kwargs = {"id": "CartPole-v1"}
     env_kwargs = {"id": "BipedalWalker-v3"}
-    policy_kwargs = {"hidden_sizes": [64, 64]}
-    advantage_kwargs = {"hidden_sizes": [64, 64]}
+    policy_kwargs = {"hidden_sizes": [256, 256]}
+    value_kwargs = {"hidden_sizes": [256, 256]}
 
-    num_iterations = 1_000_000
+    num_iterations = 5_000_000
 
-    ppo = PPO(env_kwargs, policy_kwargs, advantage_kwargs, update_every_n_steps=2048, num_iterations=num_iterations, discount=0.99, epsilon=0.2, max_episode_length=300,
-              learning_rate=3e-4, n_updates=10, batch_size=64)
+    ppo = PPO(env_kwargs, policy_kwargs, value_kwargs, update_every_n_steps=100, num_iterations=num_iterations, discount=0.999, epsilon=0.2, max_episode_length=300,
+              learning_rate=3e-4, n_updates=10, batch_size=64, normalize_observations=True)
     ppo.train()
 
     import matplotlib.pyplot as plt
