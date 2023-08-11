@@ -5,7 +5,6 @@ import gymnasium as gym
 import numpy as np
 from tqdm  import tqdm
 from rlib.utils import play_episode
-from rlib.wrappers import NormWrapper
 
 class BaseAlgorithm:
     """
@@ -49,17 +48,20 @@ class BaseAlgorithm:
     """
 
     def __init__(
-            self, env_kwargs,
+            self, env_kwargs, num_envs,
             max_episode_length=-1, 
             max_total_reward=-1,
             save_folder="results",
             normalize_observation=False,
+            seed=42,
             ):
         """
         Base class for all the algorithms.
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
+        :param num_envs: The number of environments to use for training.
+        :type num_envs: int
         :param max_episode_length: Maximum number of steps taken to complete an episode. Default is -1 (no limit)
         :type max_episode_length: int, optional
         :param max_total_reward: Maximum reward achievable in one episode. Default is -1 (no limit)
@@ -68,22 +70,24 @@ class BaseAlgorithm:
         :type save_folder: str, optional
         :param normalize_observation: Whether to normalize the observation in `[-1, 1]`. Default is False
         :type normalize_observation: bool, optional
+        :param seed: The seed to use for the environment.
+        :type seed: int
 
         """
 
         self.env_kwargs = env_kwargs
+        self.num_envs = num_envs
         self.normalize_observation = normalize_observation
         self.max_episode_length = max_episode_length
         self.max_total_reward = max_total_reward
+        self.seed = seed
         
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
         env = self.make_env()
-        obs = env.reset()[0]
-        self.action_space = env.action_space
-
+        self.action_space = env.single_action_space
+        self.obs_shape = env.single_observation_space.shape
         del env
 
-        self.obs_shape = obs.shape
         if isinstance(self.action_space, gym.spaces.Discrete):
             self.action_space_type = "discrete"
             self.action_shape = (self.action_space.n,)
@@ -106,13 +110,22 @@ class BaseAlgorithm:
 
         self.current_agent = None
     
-    def make_env(self, render_mode=None):
+    def make_env(self, render_mode=None, num_envs=None):
         """ Returns an instance of the environment, with the desired render mode.
         :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
         :type render_mode: str, optional
+        :param num_envs: The number of environments to use for training, by default None (uses `self.num_envs`).
+        :type num_envs: int, optional
         """
 
-        env = gym.make(**self.env_kwargs, render_mode=render_mode)
+        if num_envs is None:
+            num_envs = self.num_envs
+
+        env = gym.vector.SyncVectorEnv(
+            [lambda: gym.make(**self.env_kwargs, render_mode=render_mode)] * num_envs
+        )
+
+        env.seed = self.seed
 
         if self.normalize_observation:
             env = gym.wrappers.NormalizeObservation(env)
@@ -195,11 +208,11 @@ class BaseAlgorithm:
             raise ValueError("display and save_video cannot be True at the same time")
         
         if display:
-            env = self.make_env(render_mode="human")
+            env = self.make_env(render_mode="human", num_envs=1)
         elif save_video:
-            env = self.make_env(render_mode="rgb_array")
+            env = self.make_env(render_mode="rgb_array", num_envs=1)
         else:
-            env = self.make_env(render_mode=None)
+            env = self.make_env(render_mode=None, num_envs=1)
 
         rewards = []
 
@@ -255,3 +268,4 @@ class BaseAlgorithm:
 
         """
         raise NotImplementedError
+    
