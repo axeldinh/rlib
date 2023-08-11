@@ -141,8 +141,9 @@ class PPO(BaseAlgorithm):
 
         """
 
-        super().__init__(env_kwargs, max_episode_length, max_total_reward, 
-                       save_folder, normalize_observation, seed=seed, num_envs=num_envs)
+        super().__init__(env_kwargs=env_kwargs, num_envs=num_envs, max_episode_length=max_episode_length,
+                         max_total_reward=max_total_reward, save_folder=save_folder,
+                         normalize_observation=normalize_observation, seed=seed)
         
         self.policy_kwargs = policy_kwargs
         self.value_kwargs = value_kwargs
@@ -212,12 +213,12 @@ class PPO(BaseAlgorithm):
 
             states, actions, returns, gaes, values, log_probs = self.rollout(env)
 
-            states = torch.tensor(np.stack(states), dtype=torch.float32)
-            actions = torch.stack(actions).to(torch.int64)
-            returns = torch.tensor(returns, dtype=torch.float32)
-            gaes = torch.tensor(gaes, dtype=torch.float32)
-            log_probs = torch.stack(log_probs)
-            values = torch.tensor(values, dtype=torch.float32)
+            states = torch.tensor(np.stack(states), dtype=torch.float32).view(-1, *self.obs_shape)
+            actions = torch.tensor(actions).to(torch.int64).view(-1)
+            returns = torch.tensor(returns, dtype=torch.float32).view(-1)
+            gaes = torch.tensor(gaes, dtype=torch.float32).view(-1)
+            log_probs = torch.tensor(log_probs, dtype=torch.float32).view(-1)
+            values = torch.tensor(values, dtype=torch.float32).view(-1)
 
             if self.normalize_advantage:
                 gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
@@ -248,91 +249,75 @@ class PPO(BaseAlgorithm):
 
     def rollout(self, env):
 
-        states = []
-        actions = []
-        rewards = []
-        dones = []
-        values = []
-        next_values = []
-        log_probs = []
+        states = np.zeros((self.update_every_n_steps, self.num_envs, *self.obs_shape))
+        if self.distribution == 'categorical':
+            actions = np.zeros((self.update_every_n_steps, self.num_envs))
+        elif self.distribution == 'normal':
+            actions = np.zeros((self.update_every_n_steps, self.num_envs, self.action_shape[0]))
+        rewards = np.zeros((self.update_every_n_steps, self.num_envs))
+        dones = np.zeros((self.update_every_n_steps, self.num_envs))
+        values = np.zeros((self.update_every_n_steps, self.num_envs))
+        next_values = np.zeros((self.update_every_n_steps, self.num_envs))
+        log_probs = np.zeros((self.update_every_n_steps, self.num_envs))
+
+        episodes_rewards = np.array([])
+        episodes_lengths = np.array([])
 
         state, _ = env.reset()
         done = False
-        iters = 0
-        episode_length = 0
-        episode_reward = 0
 
-        while True:
+        for iter_ in range(self.update_every_n_steps):
             
             dist, value = self.current_agent(torch.tensor(state))
             action = dist.sample().detach()
             log_prob = dist.log_prob(action).detach()
-            value = value.detach().item()
+            value = value.detach().squeeze(-1)
 
-            next_state, reward, done, _, _ = env.step(action.numpy())
-            next_value = self.current_agent.value(torch.tensor(next_state)).detach().item()
+            next_state, reward, done, _, infos = env.step(action.numpy())
+            next_value = self.current_agent.value(torch.tensor(next_state)).detach().squeeze(-1)
+
+            states[iter_] = state
+            actions[iter_] = action
+            rewards[iter_] = reward
+            dones[iter_] = done
+            values[iter_] = value
+            next_values[iter_] = next_value
+            log_probs[iter_] = log_prob
+
+            if np.all(done):
+                episodes_rewards = np.concatenate([episodes_rewards, infos["episode"]["r"]])
+                episodes_lengths = np.concatenate([episodes_lengths, infos["episode"]["l"]])
 
             state = next_state
-            iters += 1
 
-            episode_length += 1
-            episode_reward += reward
+        self.current_iteration += self.update_every_n_steps
 
-            if episode_length >= self.max_episode_length and self.max_episode_length != -1:
-                done = True
+        self.current_episode += len(episodes_rewards)
 
-            if episode_reward >= self.max_total_reward and self.max_total_reward != -1:
-                done = True
+        # Value Bootstrap
+        with torch.no_grad():
 
-            states.append(state)
-            actions.append(action)
-            rewards.append(reward)
-            dones.append(done)
-            values.append(value)
-            next_values.append(next_value)
-            log_probs.append(log_prob)
+            next_value = self.current_agent.value(torch.tensor(next_state)).squeeze(-1).numpy()
 
-            if done:
-                state, _ = env.reset()
-                done = False
-                self.current_episode += 1
-                episode_length = 0
-                episode_reward = 0
+            gaes = np.zeros_like(rewards)
+            last_gae = 0
 
-                if iters >= self.update_every_n_steps:
-                    break
+            for t in reversed(range(self.update_every_n_steps)):
+                
+                if t == self.update_every_n_steps - 1:
+                    next_non_terminal = 1.0 - dones[t]
+                    next_values = next_value
+                else:
+                    next_non_terminal = 1.0 - dones[t+1]
+                    next_values = values[t+1]
 
-        self.current_iteration += iters
+                delta = rewards[t] + self.discount * next_values * next_non_terminal - values[t]
+                gaes[t] = last_gae = delta + self.discount * self.gae_lambda * next_non_terminal * last_gae
 
-        # Compute the returns and advantages
-        returns = np.zeros(len(rewards))
-        gaes = np.zeros(len(rewards))
-
-        # Get the slices of the episodes
-        dones_idx = np.where(dones)[0]
-
-        for i in range(len(dones_idx)):
-
-            slice_ = slice(dones_idx[i-1] if i > 0 else 0, dones_idx[i] + 1)
-            gaes[slice_] = self.compute_gaes_one_episode(rewards[slice_], values[slice_], next_values[slice_])
-
-        returns  = gaes + values
+            returns = gaes + values
 
         return states, actions, returns, gaes, values, log_probs
-    
-    def compute_gaes_one_episode(self, rewards, values, next_values):
 
-        next_values = np.concatenate([values[1:], [0]])
-        deltas = [reward + self.discount * next_val - val for reward, val, next_val in zip(rewards, values, next_values)]
-
-        gaes = [deltas[-1]]
-        for i in reversed(range(len(deltas)-1)):
-            gaes.append(deltas[i] + self.discount * self.gae_lambda * gaes[-1])
-
-        gaes = gaes[::-1]
-            
-        return gaes
-    
     def update_networks(self, states, actions, log_probs, gaes, values, returns):
 
         # Make batches of size `batch_size`
