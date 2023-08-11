@@ -115,7 +115,7 @@ class BaseAlgorithm:
         env = gym.make(**self.env_kwargs, render_mode=render_mode)
 
         if self.normalize_observation:
-            env = NormWrapper(env)
+            env = gym.wrappers.NormalizeObservation(env)
 
         return env
 
