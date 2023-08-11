@@ -268,13 +268,14 @@ class PPO(BaseAlgorithm):
 
         for iter_ in range(self.update_every_n_steps):
             
-            dist, value = self.current_agent(torch.tensor(state))
+            state = torch.tensor(state, dtype=torch.float32)
+            dist, value = self.current_agent(state)
             action = dist.sample().detach()
             log_prob = dist.log_prob(action).detach()
             value = value.detach().squeeze(-1)
 
             next_state, reward, done, _, infos = env.step(action.numpy())
-            next_value = self.current_agent.value(torch.tensor(next_state)).detach().squeeze(-1)
+            next_value = self.current_agent.value(torch.tensor(next_state, dtype=torch.float32)).detach().squeeze(-1)
 
             states[iter_] = state
             actions[iter_] = action
@@ -297,7 +298,7 @@ class PPO(BaseAlgorithm):
         # Value Bootstrap
         with torch.no_grad():
 
-            next_value = self.current_agent.value(torch.tensor(next_state)).squeeze(-1).numpy()
+            next_value = self.current_agent.value(torch.tensor(next_state, dtype=torch.float32)).squeeze(-1).numpy()
 
             gaes = np.zeros_like(rewards)
             last_gae = 0
