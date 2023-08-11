@@ -12,31 +12,6 @@ class PPOAgent(torch.nn.Module):
     def __init__(self, distribution, policy_agent, value_agent):
 
         super().__init__()
-
-        """
-        self.shared_layers = torch.nn.Sequential(
-            torch.nn.Linear(policy_agent.layers[0].in_features, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, 64),
-            torch.nn.ReLU()
-        )
-
-        self.policy_layers = torch.nn.Sequential(
-            torch.nn.Linear(64, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, policy_agent.layers[-1].out_features)
-        )
-
-        self.value_layers = torch.nn.Sequential(
-            torch.nn.Linear(64, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, 1)
-        )
-
-        self.policy_agent = torch.nn.Sequential(self.shared_layers, self.policy_layers)
-        self.value_agent = torch.nn.Sequential(self.shared_layers, self.value_layers)
-
-        """
         
         self.policy_agent = policy_agent
         self.value_agent = value_agent
@@ -101,15 +76,31 @@ class PPOAgent(torch.nn.Module):
 
 class PPO(BaseAlgorithm):
 
-    def __init__(self, env_kwargs, policy_kwargs, value_kwargs, discount=0.99, gae_lambda=0.95,
-                 normalize_advantage=True, value_coef=0.5,
-                 num_iterations=100000, epsilon=0.2, test_every_n_steps=1000,
+    def __init__(self, 
+                 env_kwargs,                   
+                 policy_kwargs,
+                 value_kwargs,
+                 num_envs=2,
+                 discount=0.99, 
+                 gae_lambda=0.95,
+                 normalize_advantage=True,
+                 value_coef=0.5,
+                 num_iterations=100000,
+                 epsilon=0.2,
+                 test_every_n_steps=1000,
                  num_test_episodes=10,
-                 update_every_n_steps=500, learning_rate=3e-4,
-                 update_lr_fn=None, batch_size=64, n_updates=10,
-                 max_grad_norm=0.5, target_kl=None,
-                 max_episode_length=-1, max_total_reward=-1, save_folder="ppo",
-                 normalize_observation=False):
+                 update_every_n_steps=500,
+                 learning_rate=3e-4,
+                 update_lr_fn=None,
+                 batch_size=64,
+                 n_updates=10,
+                 max_grad_norm=0.5,
+                 target_kl=None,
+                 max_episode_length=-1,
+                 max_total_reward=-1,
+                 save_folder="ppo",
+                 normalize_observation=False,
+                 seed=42):
         """
         :param env_kwargs: Keyword arguments to call `gym.make(**env_kwargs, render_mode=render_mode)`
         :type env_kwargs: dict
@@ -151,7 +142,7 @@ class PPO(BaseAlgorithm):
         """
 
         super().__init__(env_kwargs, max_episode_length, max_total_reward, 
-                       save_folder, normalize_observation)
+                       save_folder, normalize_observation, seed=seed, num_envs=num_envs)
         
         self.policy_kwargs = policy_kwargs
         self.value_kwargs = value_kwargs
@@ -254,7 +245,6 @@ class PPO(BaseAlgorithm):
                 print(description)
 
                 self.save(self.models_folder + f"/iter_{self.current_iteration}.pkl")
-
 
     def rollout(self, env):
 
