@@ -127,6 +127,9 @@ class BaseAlgorithm:
 
         env.seed = self.seed
 
+        # Keep track of statistics
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+
         if self.normalize_observation:
             env = gym.wrappers.NormalizeObservation(env)
 
