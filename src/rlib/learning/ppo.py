@@ -1,7 +1,8 @@
+from datetime import timedelta
+import time
 import numpy as np
 import torch
 from torch.distributions import Categorical, Normal
-from copy import deepcopy
 
 from rlib.learning import BaseAlgorithm
 from rlib.agents import get_agent
@@ -14,7 +15,7 @@ class PPOAgent(torch.nn.Module):
 
         """
         self.shared_layers = torch.nn.Sequential(
-            torch.nn.Linear(4, 64),
+            torch.nn.Linear(policy_agent.layers[0].in_features, 64),
             torch.nn.ReLU(),
             torch.nn.Linear(64, 64),
             torch.nn.ReLU()
@@ -23,7 +24,7 @@ class PPOAgent(torch.nn.Module):
         self.policy_layers = torch.nn.Sequential(
             torch.nn.Linear(64, 64),
             torch.nn.ReLU(),
-            torch.nn.Linear(64, 2)
+            torch.nn.Linear(64, policy_agent.layers[-1].out_features)
         )
 
         self.value_layers = torch.nn.Sequential(
@@ -34,10 +35,12 @@ class PPOAgent(torch.nn.Module):
 
         self.policy_agent = torch.nn.Sequential(self.shared_layers, self.policy_layers)
         self.value_agent = torch.nn.Sequential(self.shared_layers, self.value_layers)
+
         """
         
         self.policy_agent = policy_agent
         self.value_agent = value_agent
+
 
         self.distribution = distribution
 
@@ -45,7 +48,7 @@ class PPOAgent(torch.nn.Module):
             self.distribution = Categorical
         elif distribution == "normal":
             self.distribution = Normal
-            self.std = None
+            self.std = torch.nn.Parameter(torch.ones(1), requires_grad=True)
 
     def policy(self, state):
         # Returns the logits of the policy
@@ -88,8 +91,6 @@ class PPOAgent(torch.nn.Module):
         out = self.policy(state)
 
         if self.distribution == Normal:
-            if self.std is None:
-                self.std = torch.nn.Parameter(torch.ones_like(out), requires_grad=True)
             dist = self.distribution(out, self.std)
         else:
             dist = self.distribution(logits=out)
@@ -103,11 +104,12 @@ class PPO(BaseAlgorithm):
     def __init__(self, env_kwargs, policy_kwargs, value_kwargs, discount=0.99, gae_lambda=0.95,
                  normalize_advantage=True, value_coef=0.5,
                  num_iterations=100000, epsilon=0.2, test_every_n_steps=1000,
+                 num_test_episodes=10,
                  update_every_n_steps=500, learning_rate=3e-4,
                  update_lr_fn=None, batch_size=64, n_updates=10,
                  max_grad_norm=0.5, target_kl=None,
                  max_episode_length=-1, max_total_reward=-1, save_folder="ppo",
-                 normalize_observations=False):
+                 normalize_observation=False):
         """
         :param env_kwargs: Keyword arguments to call `gym.make(**env_kwargs, render_mode=render_mode)`
         :type env_kwargs: dict
@@ -143,13 +145,13 @@ class PPO(BaseAlgorithm):
         :type max_total_reward: float
         :param save_folder: Folder to save the model. Defaults to "ppo".
         :type save_folder: str
-        :param normalize_observations: Whether to normalize observations in `[-1, 1]`. Defaults to False.
-        :type normalize_observations: bool
+        :param normalize_observation: Whether to normalize observations in `[-1, 1]`. Defaults to False.
+        :type normalize_observation: bool
 
         """
 
         super().__init__(env_kwargs, max_episode_length, max_total_reward, 
-                       save_folder, normalize_observations)
+                       save_folder, normalize_observation)
         
         self.policy_kwargs = policy_kwargs
         self.value_kwargs = value_kwargs
@@ -163,9 +165,11 @@ class PPO(BaseAlgorithm):
         self.epsilon = epsilon
         self.num_iterations = num_iterations
         self.update_every_n_steps = update_every_n_steps
+        self.test_every_n_steps = test_every_n_steps
         self.max_grad_norm = max_grad_norm
         self.target_kl = target_kl
         self.value_coef = value_coef
+        self.num_test_episodes = num_test_episodes
 
         # Build the actor and critic
 
@@ -199,32 +203,57 @@ class PPO(BaseAlgorithm):
         self.current_iteration = 0
         self.current_episode = 0
 
-        self.test_rewards = []
+        self.test_mean_rewards = []
+        self.test_std_rewards = []
         self.losses = []
 
-    def train(self):
+        self.next_test = self.test_every_n_steps
+
+        self.times = []
+
+    def train_(self):
 
         env = self.make_env()
 
+        time_start = time.time()
+
         while self.current_iteration < self.num_iterations:
 
-            states, actions, returns, gaes, log_probs = self.rollout(env)
+            states, actions, returns, gaes, values, log_probs = self.rollout(env)
 
             states = torch.tensor(np.stack(states), dtype=torch.float32)
             actions = torch.stack(actions).to(torch.int64)
             returns = torch.tensor(returns, dtype=torch.float32)
             gaes = torch.tensor(gaes, dtype=torch.float32)
             log_probs = torch.stack(log_probs)
+            values = torch.tensor(values, dtype=torch.float32)
 
             if self.normalize_advantage:
                 gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
 
-            policy_loss, value_loss = self.update_networks(states, actions, log_probs, gaes, returns)
+            policy_loss, value_loss, kl_divergence = self.update_networks(states, actions, log_probs, gaes, values, returns)
 
-            self.losses.append({"policy_loss": policy_loss, "advantage_loss": value_loss})
+            self.losses.append({"policy_loss": policy_loss, "value_loss": value_loss})
 
-            reward, std = self.test(1)
-            print(f"Iteration: {self.current_iteration} | Policy Loss: {policy_loss:.2e} | Value Loss: {value_loss:.2e} | Reward: {reward:.2f} (+/- {std:.2f})")
+            if self.current_iteration >= self.next_test:
+                self.next_test += self.test_every_n_steps
+                mean, std = self.test(self.num_test_episodes)
+                self.test_mean_rewards.append(mean)
+                self.test_std_rewards.append(std)
+                runtime = time.time() - time_start
+                whole_runtime = runtime / self.current_iteration * self.num_iterations
+                runtime = str(timedelta(seconds=int(runtime)))
+                whole_runtime = str(timedelta(seconds=int(whole_runtime)))
+
+                description = f"Iter: [{self.current_iteration}/{self.num_iterations}] | Episode: {self.current_episode} |"
+                description += f", Reward: {mean:.2f} (+/- {std:.2f})"
+                description += f", KL: {kl_divergence:.2e}"
+                if self.distribution == Normal:
+                    description += f", std: {self.current_agent.std.detach().item():.2e}"
+                description += f", Runtime: [{runtime}s/{whole_runtime}s]"
+                print(description)
+
+                self.save(self.models_folder + f"/iter_{self.current_iteration}.pkl")
 
 
     def rollout(self, env):
@@ -234,6 +263,7 @@ class PPO(BaseAlgorithm):
         rewards = []
         dones = []
         values = []
+        next_values = []
         log_probs = []
 
         state, _ = env.reset()
@@ -250,6 +280,7 @@ class PPO(BaseAlgorithm):
             value = value.detach().item()
 
             next_state, reward, done, _, _ = env.step(action.numpy())
+            next_value = self.current_agent.value(torch.tensor(next_state)).detach().item()
 
             state = next_state
             iters += 1
@@ -268,6 +299,7 @@ class PPO(BaseAlgorithm):
             rewards.append(reward)
             dones.append(done)
             values.append(value)
+            next_values.append(next_value)
             log_probs.append(log_prob)
 
             if done:
@@ -292,34 +324,26 @@ class PPO(BaseAlgorithm):
         for i in range(len(dones_idx)):
 
             slice_ = slice(dones_idx[i-1] if i > 0 else 0, dones_idx[i] + 1)
-            returns[slice_] = self.compute_returns_one_episode(rewards[slice_])
-            gaes[slice_] = self.compute_gaes_one_episode(rewards[slice_], values[slice_])
+            gaes[slice_] = self.compute_gaes_one_episode(rewards[slice_], values[slice_], next_values[slice_])
 
-        return states, actions, returns, gaes, log_probs
+        returns  = gaes + values
 
-    def compute_returns_one_episode(self, rewards):
-        
-        return_ = rewards[-1]
-        returns = [return_]
-
-        for i in reversed(range(len(rewards)-1)):
-            return_ = rewards[i] + self.discount * return_
-            returns.insert(0, return_)
-
-        return returns
+        return states, actions, returns, gaes, values, log_probs
     
-    def compute_gaes_one_episode(self, rewards, values):
+    def compute_gaes_one_episode(self, rewards, values, next_values):
 
-        nex_values = np.concatenate([values[1:], [0]])
-        deltas = [reward + self.discount * nex_val - val for reward, val, nex_val in zip(rewards, values, nex_values)]
+        next_values = np.concatenate([values[1:], [0]])
+        deltas = [reward + self.discount * next_val - val for reward, val, next_val in zip(rewards, values, next_values)]
 
         gaes = [deltas[-1]]
         for i in reversed(range(len(deltas)-1)):
             gaes.append(deltas[i] + self.discount * self.gae_lambda * gaes[-1])
+
+        gaes = gaes[::-1]
             
-        return gaes[::-1]
+        return gaes
     
-    def update_networks(self, states, actions, log_probs, gaes, returns):
+    def update_networks(self, states, actions, log_probs, gaes, values, returns):
 
         # Make batches of size `batch_size`
         permuted_indices = np.random.permutation(len(states))
@@ -327,6 +351,7 @@ class PPO(BaseAlgorithm):
         actions = actions[permuted_indices]
         log_probs = log_probs[permuted_indices]
         gaes = gaes[permuted_indices].unsqueeze(-1)
+        values = values[permuted_indices]
         returns = returns[permuted_indices]
 
         batch_indexes = np.arange(len(states))
@@ -337,6 +362,7 @@ class PPO(BaseAlgorithm):
         for _ in range(self.n_updates):
 
             np.random.shuffle(batch_indexes)
+            log_ratio = torch.zeros_like(log_probs)
 
             for i in range(num_batches):
 
@@ -353,6 +379,13 @@ class PPO(BaseAlgorithm):
 
                 policy_loss = torch.mean(clipped_loss)
 
+                #VALUE_LOSS_CLIPPING = 0.2  # TODO: Make this a parameter
+                #pred_values = self.current_agent.value(states[batch_idx])
+                #clipped_value_loss = values + torch.clamp(pred_values - values, -VALUE_LOSS_CLIPPING, VALUE_LOSS_CLIPPING)
+                #clipped_value_loss = (clipped_value_loss - returns) ** 2
+                #non_clipped_value_loss = (returns - pred_values) ** 2
+                #value_loss = torch.mean(torch.max(clipped_value_loss, non_clipped_value_loss))
+
                 value_loss = torch.mean((self.current_agent.value(states[batch_idx]) - returns) ** 2)
 
                 loss = -policy_loss + value_loss * self.value_coef
@@ -362,67 +395,97 @@ class PPO(BaseAlgorithm):
                 self.optimizer.step()
 
                 with torch.no_grad():
-                    log_ratio = new_log_probs - log_probs[batch_idx]
-                    kl_divergence = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
-                if self.target_kl is not None:
-                    if kl_divergence > 1.5 * self.target_kl:
-                        break
+                    log_ratio[batch_idx] += log_probs[batch_idx] - new_log_probs
+            
+            kl_divergence = torch.mean(log_ratio).abs()
+            if self.target_kl is not None:
+                if kl_divergence > 1.5 * self.target_kl:
+                    break
 
-        return policy_loss.item(), value_loss.item()
+        return policy_loss.item(), value_loss.item(), kl_divergence
     
+    def save(self, path):
 
-if __name__ == "__main__":
+        ppo_kwargs = {
+            "env_kwargs": self.env_kwargs,
+            "policy_kwargs": self.policy_kwargs,
+            "value_kwargs": self.value_kwargs,
+            "discount": self.discount,
+            "gae_lambda": self.gae_lambda,
+            "normalize_advantage": self.normalize_advantage,
+            "value_coef": self.value_coef,
+            "num_iterations": self.num_iterations,
+            "epsilon": self.epsilon,
+            "test_every_n_steps": self.test_every_n_steps,
+            "update_every_n_steps": self.update_every_n_steps,
+            "learning_rate": self.learning_rate,
+            "update_lr_fn": self.update_lr_fn,
+            "batch_size": self.batch_size,
+            "n_updates": self.n_updates,
+            "max_grad_norm": self.max_grad_norm,
+            "target_kl": self.target_kl,
+            "max_episode_length": self.max_episode_length,
+            "max_total_reward": self.max_total_reward,
+            "save_folder": self.save_folder,
+            "normalize_observation": self.normalize_observation
+        }
 
-    #env_kwargs = {"id": "CartPole-v1"}
-    env_kwargs = {"id": "BipedalWalker-v3"}
-    policy_kwargs = {"hidden_sizes": [256, 256]}
-    value_kwargs = {"hidden_sizes": [256, 256]}
+        saving_folders = {
+            "save_folder": self.save_folder,
+            "models_folder": self.models_folder,
+            "plots_folder": self.plots_folder,
+            "videos_folder": self.videos_folder,
+        }
 
-    num_iterations = 5_000_000
+        model_parameters = {
+            "current_agent": self.current_agent.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+        }
 
-    ppo = PPO(env_kwargs, policy_kwargs, value_kwargs, update_every_n_steps=100, num_iterations=num_iterations, discount=0.999, epsilon=0.2, max_episode_length=300,
-              learning_rate=3e-4, n_updates=10, batch_size=64, normalize_observations=True)
-    ppo.train()
+        running_results = {
+            "current_iteration": self.current_iteration,
+            "current_episode": self.current_episode,
+            "test_mean_rewards": self.test_mean_rewards,
+            "test_std_rewards": self.test_std_rewards,
+            "losses": self.losses
+        }
 
-    import matplotlib.pyplot as plt
+        data = {
+            "ppo_kwargs": ppo_kwargs,
+            "saving_folders": saving_folders,
+            "model_parameters": model_parameters,
+            "running_results": running_results
+        }
 
-    losses = ppo.losses
-    policy_losses = [loss["policy_loss"] for loss in losses]
-    advantage_losses = [loss["advantage_loss"] for loss in losses]
+        torch.save(data, path)
 
-    plt.plot(policy_losses, label="Policy Loss")
-    plt.legend()
-    plt.show()
+    def load(self, path, verbose):
 
-    plt.plot(advantage_losses, label="Advantage Loss")
-    plt.yscale('log')
-    plt.legend()
-    plt.show()
+        data = torch.load(path)
 
-    input("Press any key for last test...")
-    mean, std = ppo.test(10, display=True)
-    print(f"Mean: {mean} | Std: {std}")
-    """
+        # Reinitialize the model
+        self.__init__(**data["ppo_kwargs"])
 
-    from stable_baselines3 import PPO
-    import gymnasium as gym
+        # Use the same saving folders
+        for key in data["saving_folders"]:
+            setattr(self, key, data["saving_folders"][key])
 
-    env = gym.make("CartPole-v1", render_mode="rgb_array")
+        # Load the model parameters
+        self.load_model_parameters(data["model_parameters"])
 
-    model = PPO("MlpPolicy", env, verbose=1)
-    model.learn(total_timesteps=100_000)
+        # Load the running results
+        for key in data["running_results"]:
+            setattr(self, key, data["running_results"][key])
 
-    vec_env = model.get_env()
-    obs = vec_env.reset()
-    for i in range(1000):
+        if verbose:
+            print(f"Loaded model from {path}")
+            print(f"Current iteration: {self.current_iteration}, Current episode: {self.current_episode}")
+            print(f"Last Test rewards: {self.test_rewards[-1]:.2f}")
+            print(f"Last Losses: Policy: {self.losses[-1]['policy_loss']:.2e}, Value: {self.losses[-1]['value_loss']:.2e}")
+            print(f"Last Learning Rate: {self.optimizer.param_groups[0]['lr']:.2e}")
+            print(f"Last Epsilon: {self.epsilon:.2e}")
 
-        action, _ = model.predict(obs, deterministic=True)
-        obs, rewards, dones, _ = vec_env.step(action)
-        env.render()
-        if dones:
-            obs = env.reset()
-        vec_env.render('human')
+    def load_model_parameters(self, model_parameters):
 
-        if dones:
-            break
-            """
+        self.current_agent.load_state_dict(model_parameters["current_agent"])
+        self.optimizer.load_state_dict(model_parameters["optimizer"])
