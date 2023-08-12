@@ -173,10 +173,13 @@ class PPO(BaseAlgorithm):
             policy_kwargs["input_size"] = num_obs
             policy_kwargs["output_size"] = num_actions
             policy_kwargs['requires_grad'] = True
+            policy_kwargs['init_weights'] = 'ppo_actor'
 
             value_kwargs["input_size"] = num_obs
             value_kwargs["output_size"] = 1
-            value_kwargs['requires_grad'] = True        
+            value_kwargs['requires_grad'] = True
+            value_kwargs['init_weights'] = 'ppo_critic'
+             
             self.policy = get_agent("mlp", **policy_kwargs)
             self.advantage = get_agent("mlp", **value_kwargs)
 
@@ -285,13 +288,13 @@ class PPO(BaseAlgorithm):
             next_values[iter_] = next_value
             log_probs[iter_] = log_prob
 
-            if np.all(done):
+            if np.any(done):
                 episodes_rewards = np.concatenate([episodes_rewards, infos["episode"]["r"]])
                 episodes_lengths = np.concatenate([episodes_lengths, infos["episode"]["l"]])
 
             state = next_state
 
-        self.current_iteration += self.update_every_n_steps
+        self.current_iteration += self.update_every_n_steps * self.num_envs
 
         self.current_episode += len(episodes_rewards)
 
