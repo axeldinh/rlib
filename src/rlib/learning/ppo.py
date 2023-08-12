@@ -365,14 +365,14 @@ class PPO(BaseAlgorithm):
 
                 policy_loss = torch.mean(clipped_loss)
 
-                #VALUE_LOSS_CLIPPING = 0.2  # TODO: Make this a parameter
-                #pred_values = self.current_agent.value(states[batch_idx])
-                #clipped_value_loss = values + torch.clamp(pred_values - values, -VALUE_LOSS_CLIPPING, VALUE_LOSS_CLIPPING)
-                #clipped_value_loss = (clipped_value_loss - returns) ** 2
-                #non_clipped_value_loss = (returns - pred_values) ** 2
-                #value_loss = torch.mean(torch.max(clipped_value_loss, non_clipped_value_loss))
+                VALUE_LOSS_CLIPPING = 0.2  # TODO: Make this a parameter
+                pred_values = self.current_agent.value(states[batch_idx])
+                clipped_value_loss = values[batch_idx] + torch.clamp(pred_values - values[batch_idx], -VALUE_LOSS_CLIPPING, VALUE_LOSS_CLIPPING)
+                clipped_value_loss = (returns[batch_idx] - clipped_value_loss) ** 2
+                non_clipped_value_loss = (returns[batch_idx] - pred_values) ** 2
+                value_loss = torch.mean(torch.max(clipped_value_loss, non_clipped_value_loss))
 
-                value_loss = torch.mean((self.current_agent.value(states[batch_idx]) - returns) ** 2)
+                #value_loss = torch.mean((self.current_agent.value(states[batch_idx]) - returns) ** 2)
 
                 loss = -policy_loss + value_loss * self.value_coef
 
