@@ -91,6 +91,7 @@ class PPO(BaseAlgorithm):
                  num_test_episodes=10,
                  update_every_n_steps=500,
                  learning_rate=3e-4,
+                 lr_annealing=True,
                  update_lr_fn=None,
                  batch_size=64,
                  n_updates=10,
@@ -162,6 +163,7 @@ class PPO(BaseAlgorithm):
         self.target_kl = target_kl
         self.value_coef = value_coef
         self.num_test_episodes = num_test_episodes
+        self.lr_annnealing = lr_annealing
 
         # Build the actor and critic
 
@@ -179,7 +181,7 @@ class PPO(BaseAlgorithm):
             value_kwargs["output_size"] = 1
             value_kwargs['requires_grad'] = True
             value_kwargs['init_weights'] = 'ppo_critic'
-             
+
             self.policy = get_agent("mlp", **policy_kwargs)
             self.advantage = get_agent("mlp", **value_kwargs)
 
@@ -213,6 +215,11 @@ class PPO(BaseAlgorithm):
         time_start = time.time()
 
         while self.current_iteration < self.num_iterations:
+
+            if self.lr_annnealing:
+
+                new_lr = self.learning_rate * (1 - self.current_iteration / self.num_iterations)
+                self.optimizer.param_groups[0]['lr'] = new_lr
 
             states, actions, returns, gaes, values, log_probs = self.rollout(env)
 
