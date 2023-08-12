@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -31,7 +32,10 @@ class MLP(nn.Module):
 
     """
 
-    def __init__(self, input_size, hidden_sizes, output_size, activation='relu', params=None, requires_grad=False, type_actions='discrete', action_space=None):
+    def __init__(self, input_size, hidden_sizes, 
+                 output_size, activation='relu', params=None, 
+                 requires_grad=False, type_actions='discrete', action_space=None,
+                 init_weights=None):
         """
         Initialize the MLP.
 
@@ -78,7 +82,15 @@ class MLP(nn.Module):
         else:
             self.layers = nn.Sequential(nn.Linear(input_size, hidden_sizes[0]), activation())
             for i in range(0, len(hidden_sizes)-1):
-                self.layers.append(nn.Linear(hidden_sizes[i], hidden_sizes[i+1]))
+                layer = nn.Linear(hidden_sizes[i], hidden_sizes[i+1])
+                if 'ppo' in init_weights:
+                    if i != len(hidden_sizes)-2:
+                        layer = MLP.init_layer_ppo(layer)
+                    elif init_weights == 'ppo_actor':
+                        layer = MLP.init_layer_ppo(layer, std=1)
+                    elif init_weights == 'ppo_critic':
+                        layer = MLP.init_layer_ppo(layer, std=1, bias_constant=0.0)
+                self.layers.append(layer)
                 self.layers.append(activation())
             self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
 
@@ -153,3 +165,10 @@ class MLP(nn.Module):
         """
 
         return {k: p.clone() for k, p in self.named_parameters()}
+
+    def init_layer_ppo(layer, std=np.sqrt(2), bias_constant=0.0):
+
+        torch.nn.init.orthogonal_(layer.weight, std)
+        torch.nn.init.constant_(layer.bias, bias_constant)
+
+        return layer
