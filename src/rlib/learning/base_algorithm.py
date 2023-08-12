@@ -217,6 +217,7 @@ class BaseAlgorithm:
         else:
             env = self.make_env(render_mode=None, num_envs=1)
 
+        env = env.envs[0]
         rewards = []
 
         for _ in range(num_episodes):
