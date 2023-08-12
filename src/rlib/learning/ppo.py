@@ -195,7 +195,7 @@ class PPO(BaseAlgorithm):
         
         self.current_agent = PPOAgent(self.distribution, self.policy, self.advantage)
         
-        self.optimizer = torch.optim.Adam(self.current_agent.policy_agent.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.Adam(self.current_agent.policy_agent.parameters(), lr=self.learning_rate, eps=1e-5)
 
         self.current_iteration = 0
         self.current_episode = 0
