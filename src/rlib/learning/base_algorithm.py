@@ -83,6 +83,10 @@ class BaseAlgorithm:
         self.max_episode_length = max_episode_length
         self.max_total_reward = max_total_reward
         self.seed = seed
+
+        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        random.seed(self.seed)
         
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
         env = self.make_env()
@@ -111,12 +115,8 @@ class BaseAlgorithm:
         self.plots_folder = os.path.join(self.save_folder, "plots")
 
         self.current_agent = None
-
-        torch.manual_seed(self.seed)
-        np.random.seed(self.seed)
-        random.seed(self.seed)
     
-    def make_env(self, render_mode=None, num_envs=None):
+    def make_env(self, render_mode=None, num_envs=None, seed=None):
         """ Returns an instance of the environment, with the desired render mode.
         :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
         :type render_mode: str, optional
@@ -131,7 +131,10 @@ class BaseAlgorithm:
             [lambda: gym.make(**self.env_kwargs, render_mode=render_mode)] * num_envs
         )
 
-        env.seed = self.seed
+        if seed is not None:
+            env.reset(seed=seed)
+        else:
+            env.reset(seed=self.seed)
 
         # Keep track of statistics
         env = gym.wrappers.RecordEpisodeStatistics(env)
@@ -224,6 +227,9 @@ class BaseAlgorithm:
             env = self.make_env(render_mode=None, num_envs=1)
 
         env = env.envs[0]
+
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        env.reset(seed=seed)  # Random seed to avoid overfitting to the same initial state
         rewards = []
 
         for _ in range(num_episodes):

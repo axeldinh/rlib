@@ -328,7 +328,7 @@ class PPO(BaseAlgorithm):
 
         # Final test
         mean, std = self.test(num_episodes=self.num_test_agents)
-        print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
+        print(f"Final Test Reward = {mean:.2f} (+-{std:.2f})")
 
 
     def rollout(self):
@@ -428,7 +428,7 @@ class PPO(BaseAlgorithm):
         step = self.num_steps_per_iter * self.num_envs
         test_step = self.test_every
 
-        # We reproduce qhat is happening during the training
+        # We reproduce what is happening during the training
         while step <= self.total_timesteps:
             if step >= test_step:
                 testing_steps.append(step)
