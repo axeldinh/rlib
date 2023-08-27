@@ -142,6 +142,11 @@ class PPO(BaseAlgorithm):
             norm_advantages=True,
     ):
         
+        self.kwargs = locals()
+
+        del self.kwargs['self']
+        del self.kwargs['__class__']
+        
         super().__init__(env_kwargs, num_envs, max_episode_length, max_total_reward,
                          save_folder, normalize_observation, seed)
         
@@ -321,6 +326,10 @@ class PPO(BaseAlgorithm):
 
                 self.next_test += self.test_every
 
+        # Final test
+        mean, std = self.test(num_episodes=self.num_test_agents)
+        print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
+
 
     def rollout(self):
 
@@ -350,33 +359,6 @@ class PPO(BaseAlgorithm):
 
     def save(self, path):
 
-        ppo_kwargs = {
-            "env_kwargs": self.env_kwargs,
-            "actor_kwargs": self.actor_kwargs,
-            "critic_kwargs": self.critic_kwargs,
-            "num_envs": self.num_envs,
-            "save_folder": self.save_folder,
-            "normalize_observation": self.normalize_observation,
-            "seed": self.seed,
-            "num_steps_per_iter": self.num_steps_per_iter,
-            "num_updates_per_iter": self.num_updates_per_iter,
-            "total_iterations": self.total_timesteps,
-            "test_every": self.test_every,
-            "num_test_agents": self.num_test_agents,
-            "batch_size": self.batch_size,
-            "discount": self.discount,
-            "use_gae": self.use_gae,
-            "lambda_gae": self.lambda_gae,
-            "policy_loss_clip": self.policy_loss_clip,
-            "value_loss_clip": self.value_loss_clip,
-            "value_loss_coef": self.value_loss_coef,
-            "entropy_loss_coef": self.entropy_loss_coef,
-            "max_grad_norm": self.max_grad_norm,
-            "learning_rate": self.learning_rate,
-            "lr_annealing": self.lr_annealing,
-            "norm_advantages": self.norm_advantages,
-        }
-
         model = {
             "current_agent": self.current_agent.state_dict(),
             "optimizer": self.optimizer.state_dict(),
@@ -400,7 +382,7 @@ class PPO(BaseAlgorithm):
         }
 
         data = {
-            "kwargs": ppo_kwargs,
+            "kwargs": self.kwargs,
             "model": model,
             "folders": folders,
             "running_results": running_results
