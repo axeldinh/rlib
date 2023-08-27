@@ -8,7 +8,7 @@ import numpy as np
 from gymnasium.spaces import Discrete, Box
 
 from rlib.learning.base_algorithm import BaseAlgorithm
-from rlib.learning.rollout import RolloutBuffer
+from rlib.learning.rollout_buffer import RolloutBuffer
 from rlib.agents import get_agent
 
 def init_layer(layer, std=np.sqrt(2.), bias_constant=0.0):
@@ -122,7 +122,7 @@ class PPO(BaseAlgorithm):
             seed=42,
             num_steps_per_iter=2048,
             num_updates_per_iter=10,
-            total_iterations=1_000_000,
+            total_timesteps=1_000_000,
             max_episode_length=-1,
             max_total_reward=-1,
             test_every=10_000,
@@ -138,7 +138,8 @@ class PPO(BaseAlgorithm):
             entropy_loss_coef=0.01,
             max_grad_norm=0.5,
             learning_rate=3e-4,
-            lr_annealing=True
+            lr_annealing=True,
+            norm_advantages=True,
     ):
         
         super().__init__(env_kwargs, num_envs, max_episode_length, max_total_reward,
@@ -148,7 +149,7 @@ class PPO(BaseAlgorithm):
         self.critic_kwargs = critic_kwargs
         self.num_steps_per_iter = num_steps_per_iter
         self.num_updates_per_iter = num_updates_per_iter
-        self.total_iterations = total_iterations
+        self.total_timesteps = total_timesteps
         self.test_every = test_every
         self.num_test_agents = num_test_agents
         self.batch_size = batch_size
@@ -163,6 +164,7 @@ class PPO(BaseAlgorithm):
         self.max_grad_norm = max_grad_norm
         self.learning_rate = learning_rate
         self.lr_annealing = lr_annealing
+        self.norm_advantages = norm_advantages
         
         self.buffer = RolloutBuffer(
             num_steps_per_iter, self.num_envs, self.obs_space, self.action_space, 
@@ -190,10 +192,10 @@ class PPO(BaseAlgorithm):
         self.entropy_losses = []
         self.kl_divs = []
 
-        if total_iterations & num_updates_per_iter != 0:
+        if total_timesteps & num_updates_per_iter != 0:
             print("Warning: total_iterations should be divisible by num_updates_per_iter")
-            self.total_iterations = ((total_iterations // num_steps_per_iter) + 1) * num_steps_per_iter
-            print("total_iterations is set to: ", self.total_iterations)
+            self.total_timesteps = ((total_timesteps // num_steps_per_iter) + 1) * num_steps_per_iter
+            print("total_iterations is set to: ", self.total_timesteps)
 
 
     def update_agent(self, writer):
@@ -219,7 +221,8 @@ class PPO(BaseAlgorithm):
                     approx_kl_div = ((ratio - 1) - log_ratio).mean()
 
                 # Normalized Advantage Function
-                advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+                if self.norm_advantages:
+                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
                 # Policy loss
                 policy_loss_1 = ratio * advantages
@@ -286,13 +289,13 @@ class PPO(BaseAlgorithm):
         self.mean_test_rewards.append(mean)
         self.std_test_rewards.append(std)
 
-        print(f"Step [{self.global_step}/{self.total_iterations}]: Reward = {mean:.2f} (+-{std:.2f})")
+        print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
 
-        while self.global_step < self.total_iterations:
+        while self.global_step < self.total_timesteps:
 
             # Learning Rate Annealing
             if self.lr_annealing:
-                new_lr = self.learning_rate * (1 - self.global_step / self.total_iterations)
+                new_lr = self.learning_rate * (1 - self.global_step / self.total_timesteps)
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = new_lr
 
@@ -312,7 +315,7 @@ class PPO(BaseAlgorithm):
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
 
-                print(f"Step [{self.global_step}/{self.total_iterations}]: Reward = {mean:.2f} (+-{std:.2f})")
+                print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
 
                 self.save(os.path.join(self.models_folder, f"model_iter_{self.global_step}.pt"))
 
@@ -357,7 +360,7 @@ class PPO(BaseAlgorithm):
             "seed": self.seed,
             "num_steps_per_iter": self.num_steps_per_iter,
             "num_updates_per_iter": self.num_updates_per_iter,
-            "total_iterations": self.total_iterations,
+            "total_iterations": self.total_timesteps,
             "test_every": self.test_every,
             "num_test_agents": self.num_test_agents,
             "batch_size": self.batch_size,
@@ -370,7 +373,8 @@ class PPO(BaseAlgorithm):
             "entropy_loss_coef": self.entropy_loss_coef,
             "max_grad_norm": self.max_grad_norm,
             "learning_rate": self.learning_rate,
-            "lr_annealing": self.lr_annealing
+            "lr_annealing": self.lr_annealing,
+            "norm_advantages": self.norm_advantages,
         }
 
         model = {
@@ -427,7 +431,7 @@ class PPO(BaseAlgorithm):
 
             print("Loaded model from", path)
             print(f"Environment: {self.env_kwargs['id']}")
-            print(f"Current iteration: [{self.global_step}/{self.total_iterations}]")
+            print(f"Current iteration: [{self.global_step}/{self.total_timesteps}]")
             print(f"Current learning rate: {self.optimizer.param_groups[0]['lr']}")
             print(f"Current reward: {self.mean_test_rewards[-1]}")
 
@@ -443,7 +447,7 @@ class PPO(BaseAlgorithm):
         test_step = self.test_every
 
         # We reproduce qhat is happening during the training
-        while step <= self.total_iterations:
+        while step <= self.total_timesteps:
             if step >= test_step:
                 testing_steps.append(step)
                 test_step += self.test_every
