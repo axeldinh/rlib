@@ -1,10 +1,11 @@
 import os
 import torch
 import torch.nn as nn
-from torch.distributions import Categorical
+from torch.distributions import Categorical, Normal
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
+from gymnasium.wrappers import ClipAction, TransformObservation, NormalizeReward, TransformReward
 from gymnasium.spaces import Discrete, Box
 
 from rlib.learning.base_algorithm import BaseAlgorithm
@@ -18,11 +19,12 @@ def init_layer(layer, std=np.sqrt(2.), bias_constant=0.0):
 
 class PPOAgent(nn.Module):
 
-    def __init__(self, state_space, action_space, actor_kwargs={}, critic_kwargs={}, continuous=False):
+    def __init__(self, state_space, action_space, actor_kwargs={}, critic_kwargs={}):
 
         super().__init__()
 
-        self.continous = continuous
+        self.state_space = state_space
+        self.action_space = action_space
 
         if isinstance(state_space, Discrete):
             state_shape = state_space.n
@@ -31,13 +33,16 @@ class PPOAgent(nn.Module):
 
         if isinstance(action_space, Discrete):
             action_shape = action_space.n
+            self.continuous = False
         elif isinstance(action_space, Box):
             action_shape = action_space.shape
+            self.continuous = True
+            self.action_high = torch.tensor(action_space.high, dtype=torch.float32)
+            self.action_low = torch.tensor(action_space.low, dtype=torch.float32)
 
         act_kwargs = actor_kwargs.copy()
         act_kwargs['input_size'] = np.array(state_shape).prod()
-        act_kwargs['output_size'] = action_shape
-        act_kwargs['type_actions'] = 'discrete'
+        act_kwargs['output_size'] = np.array(action_shape).prod()
         act_kwargs['init_weights'] = 'ppo_actor'
         act_kwargs['requires_grad'] = True
         if 'activation' not in act_kwargs:
@@ -48,7 +53,6 @@ class PPOAgent(nn.Module):
         crit_kwargs = critic_kwargs.copy()
         crit_kwargs['input_size'] = np.array(state_shape).prod()
         crit_kwargs['output_size'] = 1
-        crit_kwargs['type_actions'] = 'discrete'
         crit_kwargs['init_weights'] = 'ppo_critic'
         crit_kwargs['requires_grad'] = True
         if 'activation' not in crit_kwargs:
@@ -63,6 +67,9 @@ class PPOAgent(nn.Module):
         self.critic = get_agent(
              "mlp", **crit_kwargs
          )
+        
+        if self.continuous:
+            self.actor_std = nn.Parameter(torch.ones(np.prod(action_shape).prod()))
 
     def forward(self, state, action=None):
 
@@ -70,8 +77,12 @@ class PPOAgent(nn.Module):
         dist = self.get_distribution(state)
         if action is None:
             action = dist.sample()
-        log_prob = dist.log_prob(action)
-        entropy = dist.entropy()
+        if self.continuous:
+            log_prob = dist.log_prob(action).sum(1)
+            entropy = dist.entropy().sum(1)
+        else:
+            log_prob = dist.log_prob(action)
+            entropy = dist.entropy()
 
         return action, log_prob, entropy, value
 
@@ -82,8 +93,8 @@ class PPOAgent(nn.Module):
 
         logits = self.actor(state)
 
-        if self.continous:
-            raise NotImplementedError
+        if self.continuous:
+            distribution = Normal(logits, self.actor_std.expand_as(logits))
         else:
             distribution = Categorical(logits=logits)
 
@@ -93,7 +104,11 @@ class PPOAgent(nn.Module):
 
         dist = self.get_distribution(state)
 
-        return dist.log_prob(action)
+        if self.continuous:
+            print(dist.log_prob(action))
+            return dist.log_prob(action).sum(1)
+        else:
+            return dist.log_prob(action)
     
     def get_action(self, state):
 
@@ -109,7 +124,6 @@ class PPOAgent(nn.Module):
             action = action.detach().numpy()
 
         return action
-
 
 class PPO(BaseAlgorithm):
 
@@ -151,6 +165,12 @@ class PPO(BaseAlgorithm):
         
         super().__init__(env_kwargs, num_envs, max_episode_length, max_total_reward,
                          save_folder, normalize_observation, seed)
+
+        if isinstance(self.action_space, Box):
+            self.envs_wrappers = [
+                ClipAction, lambda env: TransformObservation(env, lambda obs: np.clip(obs, -10, 10)),
+                NormalizeReward, lambda env: TransformReward(env, lambda rew: np.clip(rew, -10, 10))
+            ]
         
         self.actor_kwargs = actor_kwargs
         self.critic_kwargs = critic_kwargs
@@ -180,8 +200,7 @@ class PPO(BaseAlgorithm):
         )
 
         self.current_agent = PPOAgent(self.obs_space, self.action_space, 
-                                      actor_kwargs=actor_kwargs, critic_kwargs=critic_kwargs, 
-                                      continuous=False)
+                                      actor_kwargs=actor_kwargs, critic_kwargs=critic_kwargs)
 
         self.optimizer = torch.optim.Adam(self.current_agent.parameters(), lr=self.learning_rate, eps=1e-5)
 
