@@ -85,17 +85,17 @@ class BaseAlgorithm:
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
         env = self.make_env()
         self.action_space = env.single_action_space
-        self.obs_shape = env.single_observation_space.shape
+        self.obs_space = env.single_observation_space
         del env
 
-        if isinstance(self.action_space, gym.spaces.Discrete):
-            self.action_space_type = "discrete"
-            self.action_shape = (self.action_space.n,)
-        elif isinstance(self.action_space, gym.spaces.Box):
-            self.action_space_type = "continuous"
-            self.action_shape = self.action_space.shape
-        else:
-            raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
+        #if isinstance(self.action_space, gym.spaces.Discrete):
+        #    self.action_space_type = "discrete"
+        #    self.action_shape = (self.action_space.n,)
+        #elif isinstance(self.action_space, gym.spaces.Box):
+        #    self.action_space_type = "continuous"
+        #    self.action_shape = self.action_space.shape
+        #else:
+        #    raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
 
         self.save_folder = save_folder
         run_number = 0

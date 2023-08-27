@@ -83,16 +83,16 @@ class MLP(nn.Module):
             self.layers = nn.Sequential(nn.Linear(input_size, hidden_sizes[0]), activation())
             for i in range(0, len(hidden_sizes)-1):
                 layer = nn.Linear(hidden_sizes[i], hidden_sizes[i+1])
-                if 'ppo' in init_weights:
-                    if i != len(hidden_sizes)-2:
-                        layer = MLP.init_layer_ppo(layer)
-                    elif init_weights == 'ppo_actor':
-                        layer = MLP.init_layer_ppo(layer, std=1)
-                    elif init_weights == 'ppo_critic':
-                        layer = MLP.init_layer_ppo(layer, std=1, bias_constant=0.0)
-                self.layers.append(layer)
+                self.layers.append(MLP.init_layer_ppo(layer))
                 self.layers.append(activation())
-            self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
+            last_layer = nn.Linear(hidden_sizes[-1], output_size)
+            if init_weights == 'ppo_actor':
+                self.layers.append(MLP.init_layer_ppo(last_layer, std=0.01))
+            elif init_weights == 'ppo_critic':
+                self.layers.append(MLP.init_layer_ppo(last_layer, std=1))
+            else:
+                self.layers.append(last_layer)
+
 
         if not requires_grad:
             self.remove_grad()
