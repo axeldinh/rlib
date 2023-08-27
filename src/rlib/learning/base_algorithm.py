@@ -3,6 +3,8 @@ from abc import abstractclassmethod
 import os
 import gymnasium as gym
 import numpy as np
+import torch
+import random
 from tqdm  import tqdm
 from rlib.utils import play_episode
 
@@ -109,6 +111,10 @@ class BaseAlgorithm:
         self.plots_folder = os.path.join(self.save_folder, "plots")
 
         self.current_agent = None
+
+        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        random.seed(self.seed)
     
     def make_env(self, render_mode=None, num_envs=None):
         """ Returns an instance of the environment, with the desired render mode.
