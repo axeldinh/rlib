@@ -57,6 +57,7 @@ class BaseAlgorithm:
             save_folder="results",
             normalize_observation=False,
             seed=42,
+            envs_wrappers=None,
             ):
         """
         Base class for all the algorithms.
@@ -84,6 +85,7 @@ class BaseAlgorithm:
         self.max_episode_length = max_episode_length
         self.max_total_reward = max_total_reward
         self.seed = seed
+        self.envs_wrappers = envs_wrappers
 
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
@@ -142,6 +144,10 @@ class BaseAlgorithm:
 
         if self.normalize_observation:
             env = gym.wrappers.NormalizeObservation(env)
+
+        if self.envs_wrappers is not None:
+            for wrapper in self.envs_wrappers:
+                env = wrapper(env)
 
         return env
 
