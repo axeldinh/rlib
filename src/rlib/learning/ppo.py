@@ -34,32 +34,34 @@ class PPOAgent(nn.Module):
         elif isinstance(action_space, Box):
             action_shape = action_space.shape
 
-        actor_kwargs['input_size'] = np.array(state_shape).prod()
-        actor_kwargs['output_size'] = action_shape
-        actor_kwargs['type_actions'] = 'discrete'
-        actor_kwargs['init_weights'] = 'ppo_actor'
-        actor_kwargs['requires_grad'] = True
-        if 'activation' not in actor_kwargs:
-            actor_kwargs['activation'] = 'tanh'
-        if 'hidden_sizes' not in actor_kwargs:
-            actor_kwargs['hidden_sizes'] = [64, 64]
+        act_kwargs = actor_kwargs.copy()
+        act_kwargs['input_size'] = np.array(state_shape).prod()
+        act_kwargs['output_size'] = action_shape
+        act_kwargs['type_actions'] = 'discrete'
+        act_kwargs['init_weights'] = 'ppo_actor'
+        act_kwargs['requires_grad'] = True
+        if 'activation' not in act_kwargs:
+            act_kwargs['activation'] = 'tanh'
+        if 'hidden_sizes' not in act_kwargs:
+            act_kwargs['hidden_sizes'] = [64, 64]
 
-        critic_kwargs['input_size'] = np.array(state_shape).prod()
-        critic_kwargs['output_size'] = 1
-        critic_kwargs['type_actions'] = 'discrete'
-        critic_kwargs['init_weights'] = 'ppo_critic'
-        critic_kwargs['requires_grad'] = True
-        if 'activation' not in critic_kwargs:
-            critic_kwargs['activation'] = 'tanh'
-        if 'hidden_sizes' not in critic_kwargs:
-            critic_kwargs['hidden_sizes'] = [64, 64]
+        crit_kwargs = critic_kwargs.copy()
+        crit_kwargs['input_size'] = np.array(state_shape).prod()
+        crit_kwargs['output_size'] = 1
+        crit_kwargs['type_actions'] = 'discrete'
+        crit_kwargs['init_weights'] = 'ppo_critic'
+        crit_kwargs['requires_grad'] = True
+        if 'activation' not in crit_kwargs:
+            crit_kwargs['activation'] = 'tanh'
+        if 'hidden_sizes' not in crit_kwargs:
+            crit_kwargs['hidden_sizes'] = [64, 64]
 
         self.actor = get_agent(
-             "mlp", **actor_kwargs
+             "mlp", **act_kwargs
          )
  
         self.critic = get_agent(
-             "mlp", **critic_kwargs
+             "mlp", **crit_kwargs
          )
 
     def forward(self, state, action=None):
@@ -281,15 +283,15 @@ class PPO(BaseAlgorithm):
 
     def train_(self):
 
-        writer = SummaryWriter(os.path.join(self.save_folder, "tensorboard"))
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
 
         # First test at initialization
         mean, std = self.test(num_episodes=self.num_test_agents)
 
         self.next_test += self.test_every
 
-        writer.add_scalar("Reward/Mean", mean, self.global_step)
-        writer.add_scalar("Reward/Std", std, self.global_step)
+        writer.add_scalar("Test/Reward Mean", mean, self.global_step)
+        writer.add_scalar("Test/Reward Std", std, self.global_step)
 
         self.mean_test_rewards.append(mean)
         self.std_test_rewards.append(std)
@@ -305,7 +307,7 @@ class PPO(BaseAlgorithm):
                     param_group['lr'] = new_lr
 
             # Update the agent with experience
-            self.rollout()
+            self.rollout(writer)
             self.update_agent(writer)
             self.buffer.reset()
 
@@ -314,8 +316,8 @@ class PPO(BaseAlgorithm):
 
                 mean, std = self.test(num_episodes=self.num_test_agents)
 
-                writer.add_scalar("Reward/Mean", mean, self.global_step)
-                writer.add_scalar("Reward/Std", std, self.global_step)
+                writer.add_scalar("Test/Reward Mean", mean, self.global_step)
+                writer.add_scalar("Test/Reward Std", std, self.global_step)
 
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
@@ -331,7 +333,7 @@ class PPO(BaseAlgorithm):
         print(f"Final Test Reward = {mean:.2f} (+-{std:.2f})")
 
 
-    def rollout(self):
+    def rollout(self, writer):
 
         obs, _ = self.env.reset()
         done = False
@@ -351,6 +353,10 @@ class PPO(BaseAlgorithm):
             done = next_done
 
             self.global_step += self.num_envs
+
+            if "episode" in info and not np.all(done==0):
+                writer.add_scalar("Train/Episode Length", info["episode"]["l"].sum() / done.sum(), self.global_step)
+                writer.add_scalar("Train/Episode Reward", info["episode"]["r"].sum() / done.sum(), self.global_step)
 
         obs = torch.tensor(obs, dtype=torch.float32)
         next_value = self.current_agent.get_value(obs).detach().squeeze(-1)

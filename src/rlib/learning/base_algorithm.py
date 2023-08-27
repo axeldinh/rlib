@@ -4,6 +4,7 @@ import os
 import gymnasium as gym
 import numpy as np
 import torch
+from torch.utils.tensorboard import SummaryWriter
 import random
 from tqdm  import tqdm
 from rlib.utils import play_episode
@@ -163,6 +164,16 @@ class BaseAlgorithm:
         """ Default training method, with a sanity on the creation of the folders.
         """
         self._create_folders()
+        
+        # Save the hyperparameters
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+        summary = "| Hyperparameter | Value |\n"
+        summary += "| :--- | ---: |\n"
+        for key, value in self.kwargs.items():
+            summary += "| {} | {} |\n".format(key, value)
+        writer.add_text("Hyperparameters", summary)
+        writer.close()
+
         self.train_()
 
     @abstractclassmethod
