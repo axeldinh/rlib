@@ -34,8 +34,7 @@ class MLP(nn.Module):
 
     def __init__(self, input_size, hidden_sizes, 
                  output_size, activation='relu', params=None, 
-                 requires_grad=False, type_actions='discrete', action_space=None,
-                 init_weights=None):
+                 requires_grad=False, init_weights=None):
         """
         Initialize the MLP.
 
@@ -52,20 +51,12 @@ class MLP(nn.Module):
         :param requires_grad: Whether to compute the gradient of the MLP. Default is False.
         :type requires_grad: bool, optional
         :raises ValueError: If `activation` is not one of 'relu', 'tanh' or 'sigmoid'.
-        :param type_actions: The type of the actions. Should be one of 'discrete' or 'continuous'. Default is 'discrete'. If 'continuous', the output of the MLP is transformed to be in the range of the action space.
-        :type type_actions: str, optional
-        :param action_space: The action space of the environment. Default is None.
-        :type action_space: gym.spaces.Box, optional
 
         """
 
         super().__init__()
 
         self.requires_grad = requires_grad
-        self.type_actions = type_actions
-
-        if self.type_actions == 'continuous':
-            self.action_space = action_space
 
         if activation == 'relu':
             activation = nn.ReLU
@@ -112,29 +103,7 @@ class MLP(nn.Module):
 
         x = self.layers(x)
 
-        # if the actions are continous, transform the output of the MLP to be in the range of the action space
-        if self.type_actions == 'continuous':
-            x = torch.tanh(x)
-            x = (x + 1) / 2
-            x = x * (torch.tensor(self.action_space.high) - torch.tensor(self.action_space.low)) + torch.tensor(self.action_space.low)
-
         return x
-
-    def get_action(self, observation):
-        """
-        Given an observation from a `gymnasium.ENV`, returns the action to take.
-
-        :param observation: The observation from the environment.
-        :type observation: numpy.ndarray
-        :return: The action to take.
-        :rtype: int
-        """
-        observation = torch.tensor(observation).float()
-        x = self(observation)
-        if self.type_actions == 'discrete':
-            return torch.argmax(x).numpy()
-        else:
-            return x.detach().numpy()
         
 
     def remove_grad(self):
