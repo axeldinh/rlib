@@ -164,7 +164,7 @@ class BaseAlgorithm:
         """ Default training method, with a sanity on the creation of the folders.
         """
         self._create_folders()
-        
+
         # Save the hyperparameters
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
         summary = "| Hyperparameter | Value |\n"
@@ -275,7 +275,7 @@ class BaseAlgorithm:
                 continue
             self.load(os.path.join(self.models_folder, model), verbose=False)
             try:
-                self.test(save_video=True, video_path=os.path.join(self.videos_folder, model[:-4] + ".mp4"))
+                self.test(save_video=True, video_path=os.path.join(self.videos_folder, ".".join(model.split('.')[:-1]) + ".mp4"))
             except Exception as e:
                 print("Failed to save video for model {}".format(model))
                 print(e)
