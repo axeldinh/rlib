@@ -159,6 +159,64 @@ class BaseAlgorithm:
         os.makedirs(self.models_folder, exist_ok=True)
         os.makedirs(self.plots_folder, exist_ok=True)
 
+    def save_git_info(self):
+        """ Saves the git info of the repository.
+        """
+        import subprocess
+        import sys
+
+        abs_path_git_directory = os.path.abspath(__file__)
+        # Stop at src in case someone cloned the repo with a different name
+        while abs_path_git_directory.split("/")[-1] != "src":
+            abs_path_git_directory = os.path.dirname(abs_path_git_directory)
+        abs_path_git_directory = os.path.dirname(abs_path_git_directory)
+
+        # Get the remote url
+        remote_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"], 
+                                             cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        # Get the commit hash
+        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], 
+                                              cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        # Get the commit message
+        commit_message = subprocess.check_output(["git", "log", "-1", "--pretty=%B"],
+                                                 cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        # Get the branch name
+        branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                                              cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        clone_command = "git clone {}".format(remote_url)
+        checkout_command = 'git checkout -b "{}" {}'.format(f"{branch_name}_{commit_hash}", commit_hash)
+        command_to_run = "python " + " ".join(sys.argv)
+
+        git_infos = "| Git info | Value |\n"
+        git_infos += "| :--- | ---: |\n"
+        git_infos += "| Remote url | {} |\n".format(remote_url)
+        git_infos += "| Branch name | {} |\n".format(branch_name)
+        git_infos += "| Commit hash | {} |\n".format(commit_hash)
+        git_infos += "| Commit message | {} |\n".format(commit_message)
+        git_infos += "| Clone command | {} |\n".format(clone_command)
+        git_infos += "| Checkout command | {} |\n".format(checkout_command)
+        git_infos += "| Command to run | {} |\n".format(command_to_run)
+
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+        writer.add_text("Git info", git_infos)
+        writer.close()
+        
+
+    def save_hyperparameters(self):
+        """ Saves the hyperparameters of the algorithm.
+        """
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+        summary = "| Hyperparameter | Value |\n"
+        summary += "| :--- | ---: |\n"
+        for key, value in self.kwargs.items():
+            summary += "| {} | {} |\n".format(key, value)
+        writer.add_text("Hyperparameters", summary)
+        writer.close()
+
     @abstractclassmethod
     def train_(self) -> None:
         """
@@ -170,16 +228,8 @@ class BaseAlgorithm:
         """ Default training method, with a sanity on the creation of the folders.
         """
         self._create_folders()
-
-        # Save the hyperparameters
-        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
-        summary = "| Hyperparameter | Value |\n"
-        summary += "| :--- | ---: |\n"
-        for key, value in self.kwargs.items():
-            summary += "| {} | {} |\n".format(key, value)
-        writer.add_text("Hyperparameters", summary)
-        writer.close()
-
+        self.save_hyperparameters()
+        self.save_git_info()
         self.train_()
 
     @abstractclassmethod
