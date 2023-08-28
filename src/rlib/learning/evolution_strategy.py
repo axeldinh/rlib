@@ -339,6 +339,7 @@ class EvolutionStrategy(BaseAlgorithm):
                 if self.mean_test_rewards[-1] == self.max_total_reward:
                     break
 
+        writer.close()
         env.close()
 
     def save(self, path):

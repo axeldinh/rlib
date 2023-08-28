@@ -184,6 +184,8 @@ class QLearning(BaseAlgorithm):
                     description += ", Test Reward: {:.2f}".format(self.mean_test_rewards[-1])
                 pbar.set_description(description)
 
+        writer.close()
+
     def save(self, path):
 
         kwargs = self.kwargs.copy()
