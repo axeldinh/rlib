@@ -115,7 +115,8 @@ class EvolutionStrategy(BaseAlgorithm):
             max_total_reward=-1, save_folder="evolution_strategy",
             stop_max_score=False,
             verbose=True,
-            normalize_observation=False
+            normalize_observation=False,
+            seed=42
             ):
         """
         Initialize the Evolution Strategy algorithm.
@@ -158,7 +159,7 @@ class EvolutionStrategy(BaseAlgorithm):
         
         super().__init__(env_kwargs, 1, max_episode_length=max_episode_length, 
                          max_total_reward=max_total_reward, save_folder=save_folder,
-                         normalize_observation=normalize_observation)
+                         normalize_observation=normalize_observation, seed=seed)
         
         self.agent_fn = lambda: EvolutionStrategyAgent(self.obs_space, self.action_space, agent_kwargs)
 
