@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -31,7 +32,9 @@ class MLP(nn.Module):
 
     """
 
-    def __init__(self, input_size, hidden_sizes, output_size, activation='relu', params=None, requires_grad=False, type_actions='discrete', action_space=None):
+    def __init__(self, input_size, hidden_sizes, 
+                 output_size, activation='relu', params=None, 
+                 requires_grad=False, init_weights=None):
         """
         Initialize the MLP.
 
@@ -48,20 +51,12 @@ class MLP(nn.Module):
         :param requires_grad: Whether to compute the gradient of the MLP. Default is False.
         :type requires_grad: bool, optional
         :raises ValueError: If `activation` is not one of 'relu', 'tanh' or 'sigmoid'.
-        :param type_actions: The type of the actions. Should be one of 'discrete' or 'continuous'. Default is 'discrete'. If 'continuous', the output of the MLP is transformed to be in the range of the action space.
-        :type type_actions: str, optional
-        :param action_space: The action space of the environment. Default is None.
-        :type action_space: gym.spaces.Box, optional
 
         """
 
         super().__init__()
 
         self.requires_grad = requires_grad
-        self.type_actions = type_actions
-
-        if self.type_actions == 'continuous':
-            self.action_space = action_space
 
         if activation == 'relu':
             activation = nn.ReLU
@@ -78,9 +73,17 @@ class MLP(nn.Module):
         else:
             self.layers = nn.Sequential(nn.Linear(input_size, hidden_sizes[0]), activation())
             for i in range(0, len(hidden_sizes)-1):
-                self.layers.append(nn.Linear(hidden_sizes[i], hidden_sizes[i+1]))
+                layer = nn.Linear(hidden_sizes[i], hidden_sizes[i+1])
+                self.layers.append(MLP.init_layer_ppo(layer))
                 self.layers.append(activation())
-            self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
+            last_layer = nn.Linear(hidden_sizes[-1], output_size)
+            if init_weights == 'ppo_actor':
+                self.layers.append(MLP.init_layer_ppo(last_layer, std=0.01))
+            elif init_weights == 'ppo_critic':
+                self.layers.append(MLP.init_layer_ppo(last_layer, std=1))
+            else:
+                self.layers.append(last_layer)
+
 
         if not requires_grad:
             self.remove_grad()
@@ -100,29 +103,7 @@ class MLP(nn.Module):
 
         x = self.layers(x)
 
-        # if the actions are continous, transform the output of the MLP to be in the range of the action space
-        if self.type_actions == 'continuous':
-            x = torch.tanh(x)
-            x = (x + 1) / 2
-            x = x * (torch.tensor(self.action_space.high) - torch.tensor(self.action_space.low)) + torch.tensor(self.action_space.low)
-
         return x
-
-    def get_action(self, observation):
-        """
-        Given an observation from a `gymnasium.ENV`, returns the action to take.
-
-        :param observation: The observation from the environment.
-        :type observation: numpy.ndarray
-        :return: The action to take.
-        :rtype: int
-        """
-        observation = torch.tensor(observation).float()
-        x = self(observation)
-        if self.type_actions == 'discrete':
-            return torch.argmax(x).numpy()
-        else:
-            return x.detach().numpy()
         
 
     def remove_grad(self):
@@ -153,3 +134,10 @@ class MLP(nn.Module):
         """
 
         return {k: p.clone() for k, p in self.named_parameters()}
+
+    def init_layer_ppo(layer, std=np.sqrt(2), bias_constant=0.0):
+
+        torch.nn.init.orthogonal_(layer.weight, std)
+        torch.nn.init.constant_(layer.bias, bias_constant)
+
+        return layer

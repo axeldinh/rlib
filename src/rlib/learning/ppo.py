@@ -1,466 +1,525 @@
-from datetime import timedelta
-import time
-import numpy as np
+import os
 import torch
+import torch.nn as nn
 from torch.distributions import Categorical, Normal
+from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
-from rlib.learning import BaseAlgorithm
+from gymnasium.wrappers import ClipAction, TransformObservation, NormalizeReward, TransformReward
+from gymnasium.spaces import Discrete, Box
+
+from rlib.learning.base_algorithm import BaseAlgorithm
+from rlib.learning.rollout_buffer import RolloutBuffer
 from rlib.agents import get_agent
 
-class PPOAgent(torch.nn.Module):
+def init_layer(layer, std=np.sqrt(2.), bias_constant=0.0):
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_constant)
+    return layer
 
-    def __init__(self, distribution, policy_agent, value_agent):
+class PPOAgent(nn.Module):
+
+    def __init__(self, state_space, action_space, actor_kwargs={}, critic_kwargs={}):
 
         super().__init__()
+
+        self.state_space = state_space
+        self.action_space = action_space
+
+        if isinstance(state_space, Discrete):
+            state_shape = state_space.n
+        elif isinstance(state_space, Box):
+            state_shape = state_space.shape
+
+        if isinstance(action_space, Discrete):
+            action_shape = action_space.n
+            self.continuous = False
+        elif isinstance(action_space, Box):
+            action_shape = action_space.shape
+            self.continuous = True
+            self.action_high = torch.tensor(action_space.high, dtype=torch.float32)
+            self.action_low = torch.tensor(action_space.low, dtype=torch.float32)
+
+        act_kwargs = actor_kwargs.copy()
+        act_kwargs['input_size'] = np.array(state_shape).prod()
+        act_kwargs['output_size'] = np.array(action_shape).prod()
+        act_kwargs['init_weights'] = 'ppo_actor'
+        act_kwargs['requires_grad'] = True
+        if 'activation' not in act_kwargs:
+            act_kwargs['activation'] = 'tanh'
+        if 'hidden_sizes' not in act_kwargs:
+            act_kwargs['hidden_sizes'] = [64, 64]
+
+        crit_kwargs = critic_kwargs.copy()
+        crit_kwargs['input_size'] = np.array(state_shape).prod()
+        crit_kwargs['output_size'] = 1
+        crit_kwargs['init_weights'] = 'ppo_critic'
+        crit_kwargs['requires_grad'] = True
+        if 'activation' not in crit_kwargs:
+            crit_kwargs['activation'] = 'tanh'
+        if 'hidden_sizes' not in crit_kwargs:
+            crit_kwargs['hidden_sizes'] = [64, 64]
+
+        self.actor = get_agent(
+             "mlp", **act_kwargs
+         )
+ 
+        self.critic = get_agent(
+             "mlp", **crit_kwargs
+         )
         
-        self.policy_agent = policy_agent
-        self.value_agent = value_agent
+        if self.continuous:
+            self.actor_std = nn.Parameter(torch.ones(np.prod(action_shape).prod()))
 
+    def forward(self, state, action=None):
 
-        self.distribution = distribution
-
-        if distribution == "categorical":
-            self.distribution = Categorical
-        elif distribution == "normal":
-            self.distribution = Normal
-            self.std = torch.nn.Parameter(torch.ones(1), requires_grad=True)
-
-    def policy(self, state):
-        # Returns the logits of the policy
-        return self.policy_agent(state)
-    
-    def value(self, state):
-        # Returns the value of the state
-        return self.value_agent(state)
-    
-    def get_action(self, state, deterministic=True):
-
-        is_np = isinstance(state, np.ndarray)
-
-        if is_np:
-            state = torch.tensor(state, dtype=torch.float32)
-
+        value = self.get_value(state)
         dist = self.get_distribution(state)
-        if deterministic:
-            if isinstance(dist, Normal):
-                action = dist.mean
-            elif isinstance(dist, Categorical):
-                action = torch.argmax(dist.probs, dim=-1)
-        else:
+        if action is None:
             action = dist.sample()
+        if self.continuous:
+            log_prob = dist.log_prob(action).sum(1)
+            entropy = dist.entropy().sum(1)
+        else:
+            log_prob = dist.log_prob(action)
+            entropy = dist.entropy()
 
-        if is_np:
-            action = action.detach().numpy()
-        
-        return action
+        return action, log_prob, entropy, value
+
+    def get_value(self, state):
+        return self.critic(state)
     
-    def forward(self, state):
-        
-        dist = self.get_distribution(state)
-        value = self.value(state)
-
-        return dist, value
-
     def get_distribution(self, state):
 
-        out = self.policy(state)
+        logits = self.actor(state)
 
-        if self.distribution == Normal:
-            dist = self.distribution(out, self.std)
+        if self.continuous:
+            distribution = Normal(logits, self.actor_std.expand_as(logits))
         else:
-            dist = self.distribution(logits=out)
+            distribution = Categorical(logits=logits)
 
-        return dist
+        return distribution
+    
+    def get_log_prob(self, state, action):
 
+        dist = self.get_distribution(state)
 
+        if self.continuous:
+            print(dist.log_prob(action))
+            return dist.log_prob(action).sum(1)
+        else:
+            return dist.log_prob(action)
+    
+    def get_action(self, state):
+
+        is_numpy = isinstance(state, np.ndarray)
+
+        if is_numpy:
+            state = torch.tensor(state, dtype=torch.float32)
+
+        # Return the mode of the distribution, i.e. the action with the highest probability
+        action = self.get_distribution(state).mode
+
+        if is_numpy:
+            action = action.detach().numpy()
+
+        return action
 
 class PPO(BaseAlgorithm):
 
-    def __init__(self, 
-                 env_kwargs,                   
-                 policy_kwargs,
-                 value_kwargs,
-                 num_envs=2,
-                 discount=0.99, 
-                 gae_lambda=0.95,
-                 normalize_advantage=True,
-                 value_coef=0.5,
-                 num_iterations=100000,
-                 epsilon=0.2,
-                 test_every_n_steps=1000,
-                 num_test_episodes=10,
-                 update_every_n_steps=500,
-                 learning_rate=3e-4,
-                 update_lr_fn=None,
-                 batch_size=64,
-                 n_updates=10,
-                 max_grad_norm=0.5,
-                 target_kl=None,
-                 max_episode_length=-1,
-                 max_total_reward=-1,
-                 save_folder="ppo",
-                 normalize_observation=False,
-                 seed=42):
-        """
-        :param env_kwargs: Keyword arguments to call `gym.make(**env_kwargs, render_mode=render_mode)`
-        :type env_kwargs: dict
-        :param policy_kwargs: Keyword arguments to call `get_agent(agent_type, **policy_kwargs)`
-        :type policy_kwargs: dict
-        :param value_kwargs: Keyword arguments to call `get_agent(agent_type, **value_kwargs)`
-        :type value_kwargs: dict
-        :param discount: Discount factor. Defaults to 0.99.
-        :type discount: float
-        :param gae_lambda: Lambda for the generalized advantage estimation. Defaults to 0.95.
-        :type gae_lambda: float
-        :param normalize_advantage: Whether to normalize the advantage. Defaults to True.
-        :type normalize_advantage: bool
-        :param value_coef: Coefficient for the value loss. Defaults to 0.5.
-        :type value_coef: float
-        :param target_kl: Target KL divergence. Defaults to None (No limit).
-        :type target_kl: float
-        :param update_every_n_steps: Number of steps to collect before updating the policy. Defaults to 1000.
-        :type update_every_n_steps: int
-        :param learning_rate: Learning rate for the policy and value function. Defaults to 3e-4.
-        :type learning_rate: float
-        :param update_lr_fn: Function to update the learning rate. Should take in the current iteration and return two floats (policy_lr, advantage_lr). Defaults to None (No update).
-        :type update_lr_fn: function
-        :param batch_size: Batch size for training. Defaults to 64.
-        :type batch_size: int
-        :param n_updates: Number of updates to perform after each rollout. Defaults to 10.
-        :type n_updates: int
-        :param max_grad_norm: Maximum gradient norm. Defaults to 0.5.
-        :type max_grad_norm: float
-        :param max_episode_length: Maximum length of an episode. Defaults to -1 (no limit).
-        :type max_episode_length: int
-        :param max_total_reward: Maximum total reward of an episode. Defaults to -1 (no limit).
-        :type max_total_reward: float
-        :param save_folder: Folder to save the model. Defaults to "ppo".
-        :type save_folder: str
-        :param normalize_observation: Whether to normalize observations in `[-1, 1]`. Defaults to False.
-        :type normalize_observation: bool
-
-        """
-
-        super().__init__(env_kwargs=env_kwargs, num_envs=num_envs, max_episode_length=max_episode_length,
-                         max_total_reward=max_total_reward, save_folder=save_folder,
-                         normalize_observation=normalize_observation, seed=seed)
+    def __init__(
+            self,
+            env_kwargs,
+            actor_kwargs={},
+            critic_kwargs={},
+            num_envs=10,
+            save_folder='ppo',
+            normalize_observation=False,
+            seed=42,
+            num_steps_per_iter=2048,
+            num_updates_per_iter=10,
+            total_timesteps=1_000_000,
+            max_episode_length=-1,
+            max_total_reward=-1,
+            test_every=10_000,
+            num_test_agents=10,
+            batch_size=64,
+            discount=0.99,
+            use_gae=True,
+            lambda_gae=0.95,
+            policy_loss_clip=0.2,
+            clip_value_loss=True,
+            value_loss_clip=0.2,
+            value_loss_coef=0.5,
+            entropy_loss_coef=0.01,
+            max_grad_norm=0.5,
+            learning_rate=3e-4,
+            lr_annealing=True,
+            norm_advantages=True,
+    ):
         
-        self.policy_kwargs = policy_kwargs
-        self.value_kwargs = value_kwargs
-        self.learning_rate = learning_rate
-        self.update_lr_fn = update_lr_fn
+        self.kwargs = locals()
+
+        del self.kwargs['self']
+        del self.kwargs['__class__']
+        
+        super().__init__(env_kwargs, num_envs, max_episode_length, max_total_reward,
+                         save_folder, normalize_observation, seed)
+
+        # If the action space is continuous, apply some wrappers
+        if isinstance(self.action_space, Box):
+            self.envs_wrappers = [
+                ClipAction, lambda env: TransformObservation(env, lambda obs: np.clip(obs, -10, 10)),
+                NormalizeReward, lambda env: TransformReward(env, lambda rew: np.clip(rew, -10, 10))
+            ]
+        
+        self.actor_kwargs = actor_kwargs
+        self.critic_kwargs = critic_kwargs
+        self.num_steps_per_iter = num_steps_per_iter
+        self.num_updates_per_iter = num_updates_per_iter
+        self.total_timesteps = total_timesteps
+        self.test_every = test_every
+        self.num_test_agents = num_test_agents
         self.batch_size = batch_size
-        self.n_updates = n_updates
         self.discount = discount
-        self.gae_lambda = gae_lambda
-        self.normalize_advantage = normalize_advantage
-        self.epsilon = epsilon
-        self.num_iterations = num_iterations
-        self.update_every_n_steps = update_every_n_steps
-        self.test_every_n_steps = test_every_n_steps
+        self.use_gae = use_gae
+        self.lambda_gae = lambda_gae
+        self.policy_loss_clip = policy_loss_clip
+        self.clip_value_loss = clip_value_loss
+        self.value_loss_clip = value_loss_clip
+        self.value_loss_coef = value_loss_coef
+        self.entropy_loss_coef = entropy_loss_coef
         self.max_grad_norm = max_grad_norm
-        self.target_kl = target_kl
-        self.value_coef = value_coef
-        self.num_test_episodes = num_test_episodes
-
-        # Build the actor and critic
-
-        if self.obs_shape.__len__() == 1:
-
-            num_obs = self.obs_shape[0]
-            num_actions = self.action_shape[0]
-
-            policy_kwargs["input_size"] = num_obs
-            policy_kwargs["output_size"] = num_actions
-            policy_kwargs['requires_grad'] = True
-
-            value_kwargs["input_size"] = num_obs
-            value_kwargs["output_size"] = 1
-            value_kwargs['requires_grad'] = True        
-            self.policy = get_agent("mlp", **policy_kwargs)
-            self.advantage = get_agent("mlp", **value_kwargs)
-
-        else:
-            raise NotImplementedError("PPO only supports 1D observations currently.")
+        self.learning_rate = learning_rate
+        self.lr_annealing = lr_annealing
+        self.norm_advantages = norm_advantages
         
-        if self.action_space_type == "discrete":
-            self.distribution = "categorical"
-        elif self.action_space_type == "continuous":
-            self.distribution = "normal"
-        
-        self.current_agent = PPOAgent(self.distribution, self.policy, self.advantage)
-        
-        self.optimizer = torch.optim.Adam(self.current_agent.policy_agent.parameters(), lr=self.learning_rate)
+        self.buffer = RolloutBuffer(
+            num_steps_per_iter, self.num_envs, self.obs_space, self.action_space, 
+            batch_size, discount,
+            use_gae, lambda_gae
+        )
 
-        self.current_iteration = 0
-        self.current_episode = 0
+        self.current_agent = PPOAgent(self.obs_space, self.action_space, 
+                                      actor_kwargs=actor_kwargs, critic_kwargs=critic_kwargs)
 
-        self.test_mean_rewards = []
-        self.test_std_rewards = []
+        self.optimizer = torch.optim.Adam(self.current_agent.parameters(), lr=self.learning_rate, eps=1e-5)
+
+        self.env = self.make_env()
+
+        self.global_step = 0
+
+        self.next_test = 0
+
+        self.mean_test_rewards = []
+        self.std_test_rewards = []
         self.losses = []
+        self.policy_losses = []
+        self.value_losses = []
+        self.entropy_losses = []
+        self.kl_divs = []
 
-        self.next_test = self.test_every_n_steps
+        if total_timesteps & num_updates_per_iter != 0:
+            print("Warning: total_iterations should be divisible by num_updates_per_iter")
+            self.total_timesteps = ((total_timesteps // num_steps_per_iter) + 1) * num_steps_per_iter
+            print("total_iterations is set to: ", self.total_timesteps)
 
-        self.times = []
+
+    def update_agent(self, writer):
+
+        for _ in range(self.num_updates_per_iter):
+
+            mean_loss = 0 
+            mean_policy_loss = 0
+            mean_value_loss = 0
+            mean_entropy_loss = 0
+            mean_kl_div = 0
+
+            for batch in self.buffer.batches():
+
+                actions, states, log_probs, advantages, returns, values = batch
+
+                _, new_log_prob, new_entropy, new_value = self.current_agent(states, actions)
+
+                log_ratio = new_log_prob - log_probs
+                ratio = torch.exp(log_ratio)
+
+                with torch.no_grad():
+                    approx_kl_div = ((ratio - 1) - log_ratio).mean()
+
+                # Normalized Advantage Function
+                if self.norm_advantages:
+                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+                # Policy loss
+                policy_loss_1 = ratio * advantages
+                policy_loss_2 = torch.clamp(ratio, 1 - self.policy_loss_clip, 1 + self.policy_loss_clip) * advantages
+                policy_loss = -torch.min(policy_loss_1, policy_loss_2).mean()
+
+                # Value loss
+                new_value = new_value.squeeze(-1)
+
+                if self.clip_value_loss:  # Clipped value loss
+                    value_loss_unclipped = (returns - new_value) ** 2
+                    value_loss_clipped = (values + torch.clamp(new_value - values, -self.value_loss_clip, self.value_loss_clip) - returns) ** 2
+                    value_loss = 0.5 * torch.max(value_loss_unclipped, value_loss_clipped).mean()
+
+                else:  # Unclipped value loss
+                    value_loss = (returns - new_value) ** 2
+                    value_loss = 0.5 * value_loss.mean()
+
+                entropy_loss = new_entropy.mean()
+
+                loss = policy_loss + self.value_loss_coef * value_loss - self.entropy_loss_coef * entropy_loss
+    
+                self.optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_(self.current_agent.parameters(), self.max_grad_norm)
+                self.optimizer.step()
+
+                mean_loss += loss.item()
+                mean_policy_loss += policy_loss.item()
+                mean_value_loss += value_loss.item()
+                mean_entropy_loss += entropy_loss.item()
+                mean_kl_div += approx_kl_div.item()
+
+            mean_loss /= (self.num_envs * self.num_steps_per_iter) / self.batch_size
+            mean_policy_loss /= (self.num_envs * self.num_steps_per_iter) / self.batch_size
+            mean_value_loss /= (self.num_envs * self.num_steps_per_iter) / self.batch_size
+            mean_entropy_loss /= (self.num_envs * self.num_steps_per_iter) / self.batch_size
+            mean_kl_div /= (self.num_envs * self.num_steps_per_iter) / self.batch_size
+
+        writer.add_scalar("Loss", mean_loss, self.global_step)
+        writer.add_scalar("Policy Loss", mean_policy_loss, self.global_step)
+        writer.add_scalar("Value Loss", mean_value_loss, self.global_step)
+        writer.add_scalar("Entropy Loss", mean_entropy_loss, self.global_step)
+        writer.add_scalar("Kullback-Liebler Divergence", mean_kl_div, self.global_step)
+
+        self.losses.append(mean_loss)
+        self.policy_losses.append(mean_policy_loss)
+        self.value_losses.append(mean_value_loss)
+        self.entropy_losses.append(mean_entropy_loss)
+        self.kl_divs.append(mean_kl_div)
 
     def train_(self):
 
-        env = self.make_env()
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
 
-        time_start = time.time()
+        # First test at initialization
+        mean, std = self.test(num_episodes=self.num_test_agents)
 
-        while self.current_iteration < self.num_iterations:
+        self.next_test += self.test_every
 
-            states, actions, returns, gaes, values, log_probs = self.rollout(env)
+        writer.add_scalar("Test/Reward Mean", mean, self.global_step)
+        writer.add_scalar("Test/Reward Std", std, self.global_step)
 
-            states = torch.tensor(np.stack(states), dtype=torch.float32).view(-1, *self.obs_shape)
-            actions = torch.tensor(actions).to(torch.int64).view(-1)
-            returns = torch.tensor(returns, dtype=torch.float32).view(-1)
-            gaes = torch.tensor(gaes, dtype=torch.float32).view(-1)
-            log_probs = torch.tensor(log_probs, dtype=torch.float32).view(-1)
-            values = torch.tensor(values, dtype=torch.float32).view(-1)
+        self.mean_test_rewards.append(mean)
+        self.std_test_rewards.append(std)
 
-            if self.normalize_advantage:
-                gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
+        print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
 
-            policy_loss, value_loss, kl_divergence = self.update_networks(states, actions, log_probs, gaes, values, returns)
+        while self.global_step < self.total_timesteps:
 
-            self.losses.append({"policy_loss": policy_loss, "value_loss": value_loss})
+            # Learning Rate Annealing
+            if self.lr_annealing:
+                new_lr = self.learning_rate * (1 - self.global_step / self.total_timesteps)
+                for param_group in self.optimizer.param_groups:
+                    param_group['lr'] = new_lr
 
-            if self.current_iteration >= self.next_test:
-                self.next_test += self.test_every_n_steps
-                mean, std = self.test(self.num_test_episodes)
-                self.test_mean_rewards.append(mean)
-                self.test_std_rewards.append(std)
-                runtime = time.time() - time_start
-                whole_runtime = runtime / self.current_iteration * self.num_iterations
-                runtime = str(timedelta(seconds=int(runtime)))
-                whole_runtime = str(timedelta(seconds=int(whole_runtime)))
+            # Update the agent with experience
+            self.rollout(writer)
+            self.update_agent(writer)
+            self.buffer.reset()
 
-                description = f"Iter: [{self.current_iteration}/{self.num_iterations}] | Episode: {self.current_episode} |"
-                description += f", Reward: {mean:.2f} (+/- {std:.2f})"
-                description += f", KL: {kl_divergence:.2e}"
-                if self.distribution == Normal:
-                    description += f", std: {self.current_agent.std.detach().item():.2e}"
-                description += f", Runtime: [{runtime}s/{whole_runtime}s]"
-                print(description)
+            # Test the agent
+            if self.global_step >= self.next_test:
 
-                self.save(self.models_folder + f"/iter_{self.current_iteration}.pkl")
+                mean, std = self.test(num_episodes=self.num_test_agents)
 
-    def rollout(self, env):
+                writer.add_scalar("Test/Reward Mean", mean, self.global_step)
+                writer.add_scalar("Test/Reward Std", std, self.global_step)
 
-        states = np.zeros((self.update_every_n_steps, self.num_envs, *self.obs_shape))
-        if self.distribution == 'categorical':
-            actions = np.zeros((self.update_every_n_steps, self.num_envs))
-        elif self.distribution == 'normal':
-            actions = np.zeros((self.update_every_n_steps, self.num_envs, self.action_shape[0]))
-        rewards = np.zeros((self.update_every_n_steps, self.num_envs))
-        dones = np.zeros((self.update_every_n_steps, self.num_envs))
-        values = np.zeros((self.update_every_n_steps, self.num_envs))
-        next_values = np.zeros((self.update_every_n_steps, self.num_envs))
-        log_probs = np.zeros((self.update_every_n_steps, self.num_envs))
+                self.mean_test_rewards.append(mean)
+                self.std_test_rewards.append(std)
 
-        episodes_rewards = np.array([])
-        episodes_lengths = np.array([])
+                print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
 
-        state, _ = env.reset()
+                self.save(os.path.join(self.models_folder, f"model_iter_{self.global_step}.pt"))
+
+                self.next_test += self.test_every
+
+        # Final test
+        mean, std = self.test(num_episodes=self.num_test_agents)
+        print(f"Final Test Reward = {mean:.2f} (+-{std:.2f})")
+
+
+    def rollout(self, writer):
+
+        obs, _ = self.env.reset()
         done = False
 
-        for iter_ in range(self.update_every_n_steps):
+        for _ in range(self.num_steps_per_iter):
             
-            dist, value = self.current_agent(torch.tensor(state))
-            action = dist.sample().detach()
-            log_prob = dist.log_prob(action).detach()
-            value = value.detach().squeeze(-1)
+            obs = torch.tensor(obs, dtype=torch.float32)
+            action, log_prob, _, value = self.current_agent(obs)
 
-            next_state, reward, done, _, infos = env.step(action.numpy())
-            next_value = self.current_agent.value(torch.tensor(next_state)).detach().squeeze(-1)
+            next_obs, reward, next_done, _, info = self.env.step(action.detach().numpy())
 
-            states[iter_] = state
-            actions[iter_] = action
-            rewards[iter_] = reward
-            dones[iter_] = done
-            values[iter_] = value
-            next_values[iter_] = next_value
-            log_probs[iter_] = log_prob
+            self.buffer.store(
+                action, obs, reward, done, log_prob.detach(), value.detach().squeeze(-1)
+            )
 
-            if np.all(done):
-                episodes_rewards = np.concatenate([episodes_rewards, infos["episode"]["r"]])
-                episodes_lengths = np.concatenate([episodes_lengths, infos["episode"]["l"]])
+            obs = next_obs
+            done = next_done
 
-            state = next_state
+            self.global_step += self.num_envs
 
-        self.current_iteration += self.update_every_n_steps
+            if "episode" in info and not np.all(done==0):
+                writer.add_scalar("Train/Episode Length", info["episode"]["l"].sum() / done.sum(), self.global_step)
+                writer.add_scalar("Train/Episode Reward", info["episode"]["r"].sum() / done.sum(), self.global_step)
 
-        self.current_episode += len(episodes_rewards)
+                if np.any(info['episode']['l'] > 1600):
+                    print(info['episode'])
 
-        # Value Bootstrap
-        with torch.no_grad():
+        obs = torch.tensor(obs, dtype=torch.float32)
+        next_value = self.current_agent.get_value(obs).detach().squeeze(-1)
+        self.buffer.compute_advantages(done, next_value)
 
-            next_value = self.current_agent.value(torch.tensor(next_state)).squeeze(-1).numpy()
 
-            gaes = np.zeros_like(rewards)
-            last_gae = 0
-
-            for t in reversed(range(self.update_every_n_steps)):
-                
-                if t == self.update_every_n_steps - 1:
-                    next_non_terminal = 1.0 - dones[t]
-                    next_values = next_value
-                else:
-                    next_non_terminal = 1.0 - dones[t+1]
-                    next_values = values[t+1]
-
-                delta = rewards[t] + self.discount * next_values * next_non_terminal - values[t]
-                gaes[t] = last_gae = delta + self.discount * self.gae_lambda * next_non_terminal * last_gae
-
-            returns = gaes + values
-
-        return states, actions, returns, gaes, values, log_probs
-
-    def update_networks(self, states, actions, log_probs, gaes, values, returns):
-
-        # Make batches of size `batch_size`
-        permuted_indices = np.random.permutation(len(states))
-        states = states[permuted_indices]
-        actions = actions[permuted_indices]
-        log_probs = log_probs[permuted_indices]
-        gaes = gaes[permuted_indices].unsqueeze(-1)
-        values = values[permuted_indices]
-        returns = returns[permuted_indices]
-
-        batch_indexes = np.arange(len(states))
-        num_batches = len(states) // self.batch_size
-        if len(states) % self.batch_size != 0:
-            num_batches += 1
-
-        for _ in range(self.n_updates):
-
-            np.random.shuffle(batch_indexes)
-            log_ratio = torch.zeros_like(log_probs)
-
-            for i in range(num_batches):
-
-                batch_idx = batch_indexes[i*self.batch_size:(i+1)*self.batch_size]
-
-                self.optimizer.zero_grad()
-
-                new_dist = self.current_agent.get_distribution(states[batch_idx])
-                new_log_probs = new_dist.log_prob(actions[batch_idx])
-
-                ratio = torch.exp(new_log_probs - log_probs[batch_idx])
-                clipped_ratio = torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon)
-                clipped_loss = torch.min(ratio * gaes[batch_idx], clipped_ratio * gaes[batch_idx])
-
-                policy_loss = torch.mean(clipped_loss)
-
-                #VALUE_LOSS_CLIPPING = 0.2  # TODO: Make this a parameter
-                #pred_values = self.current_agent.value(states[batch_idx])
-                #clipped_value_loss = values + torch.clamp(pred_values - values, -VALUE_LOSS_CLIPPING, VALUE_LOSS_CLIPPING)
-                #clipped_value_loss = (clipped_value_loss - returns) ** 2
-                #non_clipped_value_loss = (returns - pred_values) ** 2
-                #value_loss = torch.mean(torch.max(clipped_value_loss, non_clipped_value_loss))
-
-                value_loss = torch.mean((self.current_agent.value(states[batch_idx]) - returns) ** 2)
-
-                loss = -policy_loss + value_loss * self.value_coef
-
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.current_agent.parameters(), self.max_grad_norm)
-                self.optimizer.step()
-
-                with torch.no_grad():
-                    log_ratio[batch_idx] += log_probs[batch_idx] - new_log_probs
-            
-            kl_divergence = torch.mean(log_ratio).abs()
-            if self.target_kl is not None:
-                if kl_divergence > 1.5 * self.target_kl:
-                    break
-
-        return policy_loss.item(), value_loss.item(), kl_divergence
-    
     def save(self, path):
 
-        ppo_kwargs = {
-            "env_kwargs": self.env_kwargs,
-            "policy_kwargs": self.policy_kwargs,
-            "value_kwargs": self.value_kwargs,
-            "discount": self.discount,
-            "gae_lambda": self.gae_lambda,
-            "normalize_advantage": self.normalize_advantage,
-            "value_coef": self.value_coef,
-            "num_iterations": self.num_iterations,
-            "epsilon": self.epsilon,
-            "test_every_n_steps": self.test_every_n_steps,
-            "update_every_n_steps": self.update_every_n_steps,
-            "learning_rate": self.learning_rate,
-            "update_lr_fn": self.update_lr_fn,
-            "batch_size": self.batch_size,
-            "n_updates": self.n_updates,
-            "max_grad_norm": self.max_grad_norm,
-            "target_kl": self.target_kl,
-            "max_episode_length": self.max_episode_length,
-            "max_total_reward": self.max_total_reward,
-            "save_folder": self.save_folder,
-            "normalize_observation": self.normalize_observation
-        }
-
-        saving_folders = {
-            "save_folder": self.save_folder,
-            "models_folder": self.models_folder,
-            "plots_folder": self.plots_folder,
-            "videos_folder": self.videos_folder,
-        }
-
-        model_parameters = {
+        model = {
             "current_agent": self.current_agent.state_dict(),
             "optimizer": self.optimizer.state_dict(),
         }
 
+        folders = {
+            "save_folder": self.save_folder,
+            "models_folder": self.models_folder,
+            "videos_folder": self.videos_folder,
+            "plots_folder": self.plots_folder,
+        }
+
         running_results = {
-            "current_iteration": self.current_iteration,
-            "current_episode": self.current_episode,
-            "test_mean_rewards": self.test_mean_rewards,
-            "test_std_rewards": self.test_std_rewards,
-            "losses": self.losses
+            "mean_test_rewards": self.mean_test_rewards,
+            "std_test_rewards": self.std_test_rewards,
+            "losses": self.losses,
+            "policy_losses": self.policy_losses,
+            "value_losses": self.value_losses,
+            "entropy_losses": self.entropy_losses,
+            "kl_divs": self.kl_divs,
         }
 
         data = {
-            "ppo_kwargs": ppo_kwargs,
-            "saving_folders": saving_folders,
-            "model_parameters": model_parameters,
+            "kwargs": self.kwargs,
+            "model": model,
+            "folders": folders,
             "running_results": running_results
         }
 
-        torch.save(data, path)
+        with open(path, "wb") as f:
+            torch.save(data, f)
 
-    def load(self, path, verbose):
+
+    def load(self, path, verbose=True):
 
         data = torch.load(path)
 
-        # Reinitialize the model
-        self.__init__(**data["ppo_kwargs"])
+        self.__init__(**data["kwargs"])
 
-        # Use the same saving folders
-        for key in data["saving_folders"]:
-            setattr(self, key, data["saving_folders"][key])
+        # Set back to the correct folders
+        for key in data['folders']:
+            setattr(self, key, data['folders'][key])
 
-        # Load the model parameters
-        self.load_model_parameters(data["model_parameters"])
+        self.current_agent.load_state_dict(data["model"]["current_agent"])
+        self.optimizer.load_state_dict(data["model"]["optimizer"])
 
-        # Load the running results
-        for key in data["running_results"]:
-            setattr(self, key, data["running_results"][key])
+        # Get back the results
+        for key in data['running_results']:
+            setattr(self, key, data['running_results'][key])
 
         if verbose:
-            print(f"Loaded model from {path}")
-            print(f"Current iteration: {self.current_iteration}, Current episode: {self.current_episode}")
-            print(f"Last Test rewards: {self.test_rewards[-1]:.2f}")
-            print(f"Last Losses: Policy: {self.losses[-1]['policy_loss']:.2e}, Value: {self.losses[-1]['value_loss']:.2e}")
-            print(f"Last Learning Rate: {self.optimizer.param_groups[0]['lr']:.2e}")
-            print(f"Last Epsilon: {self.epsilon:.2e}")
 
-    def load_model_parameters(self, model_parameters):
+            print("Loaded model from", path)
+            print(f"Environment: {self.env_kwargs['id']}")
+            print(f"Current iteration: [{self.global_step}/{self.total_timesteps}]")
+            print(f"Current learning rate: {self.optimizer.param_groups[0]['lr']}")
+            print(f"Current reward: {self.mean_test_rewards[-1]}")
 
-        self.current_agent.load_state_dict(model_parameters["current_agent"])
-        self.optimizer.load_state_dict(model_parameters["optimizer"])
+    def save_plots(self):
+
+        # First save the testing plots
+
+        # We need to find the global step corresponding to the test_every
+
+        testing_steps = [0]  # We always test at the beginning
+
+        step = self.num_steps_per_iter * self.num_envs
+        test_step = self.test_every
+
+        # We reproduce what is happening during the training
+        while step <= self.total_timesteps:
+            if step >= test_step:
+                testing_steps.append(step)
+                test_step += self.test_every
+            step += self.num_steps_per_iter * self.num_envs
+
+        # Now we can plot the results
+
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(testing_steps, self.mean_test_rewards)
+        plt.fill_between(
+            testing_steps,
+            np.array(self.mean_test_rewards) - np.array(self.std_test_rewards),
+            np.array(self.mean_test_rewards) + np.array(self.std_test_rewards),
+            alpha=0.3
+        )
+        plt.xlabel("Steps")
+        plt.ylabel("Reward")
+        plt.savefig(os.path.join(self.plots_folder, "test_rewards.png"), bbox_inches='tight')
+        plt.close()
+
+        # Now we save the training plots
+        
+        x = [i * self.num_steps_per_iter * self.num_envs for i in range(1, len(self.losses) + 1)]
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, self.losses)
+        plt.xlabel("Steps")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.savefig(os.path.join(self.plots_folder, "losses.png"), bbox_inches='tight')
+        plt.close()
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, self.policy_losses)
+        plt.xlabel("Steps")
+        plt.ylabel("Policy Loss")
+        plt.savefig(os.path.join(self.plots_folder, "policy_losses.png"), bbox_inches='tight')
+        plt.close()
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, self.value_losses)
+        plt.xlabel("Steps")
+        plt.ylabel("Value Loss")
+        plt.yscale("log")
+        plt.savefig(os.path.join(self.plots_folder, "value_losses.png"), bbox_inches='tight')
+        plt.close()
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, self.entropy_losses)
+        plt.xlabel("Steps")
+        plt.ylabel("Entropy Loss")
+        plt.yscale("log")
+        plt.savefig(os.path.join(self.plots_folder, "entropy_losses.png"), bbox_inches='tight')
+        plt.close()
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(x, self.kl_divs)
+        plt.xlabel("Steps")
+        plt.ylabel("Kullback-Liebler Divergence")
+        plt.yscale("log")
+        plt.savefig(os.path.join(self.plots_folder, "kl_divs.png"), bbox_inches='tight')
+        plt.close()

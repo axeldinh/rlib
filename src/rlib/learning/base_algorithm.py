@@ -3,6 +3,9 @@ from abc import abstractclassmethod
 import os
 import gymnasium as gym
 import numpy as np
+import torch
+from torch.utils.tensorboard import SummaryWriter
+import random
 from tqdm  import tqdm
 from rlib.utils import play_episode
 
@@ -54,6 +57,7 @@ class BaseAlgorithm:
             save_folder="results",
             normalize_observation=False,
             seed=42,
+            envs_wrappers=None,
             ):
         """
         Base class for all the algorithms.
@@ -81,21 +85,26 @@ class BaseAlgorithm:
         self.max_episode_length = max_episode_length
         self.max_total_reward = max_total_reward
         self.seed = seed
+        self.envs_wrappers = envs_wrappers
+
+        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        random.seed(self.seed)
         
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
         env = self.make_env()
         self.action_space = env.single_action_space
-        self.obs_shape = env.single_observation_space.shape
+        self.obs_space = env.single_observation_space
         del env
 
-        if isinstance(self.action_space, gym.spaces.Discrete):
-            self.action_space_type = "discrete"
-            self.action_shape = (self.action_space.n,)
-        elif isinstance(self.action_space, gym.spaces.Box):
-            self.action_space_type = "continuous"
-            self.action_shape = self.action_space.shape
-        else:
-            raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
+        #if isinstance(self.action_space, gym.spaces.Discrete):
+        #    self.action_space_type = "discrete"
+        #    self.action_shape = (self.action_space.n,)
+        #elif isinstance(self.action_space, gym.spaces.Box):
+        #    self.action_space_type = "continuous"
+        #    self.action_shape = self.action_space.shape
+        #else:
+        #    raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
 
         self.save_folder = save_folder
         run_number = 0
@@ -110,7 +119,7 @@ class BaseAlgorithm:
 
         self.current_agent = None
     
-    def make_env(self, render_mode=None, num_envs=None):
+    def make_env(self, render_mode=None, num_envs=None, seed=None):
         """ Returns an instance of the environment, with the desired render mode.
         :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
         :type render_mode: str, optional
@@ -125,13 +134,20 @@ class BaseAlgorithm:
             [lambda: gym.make(**self.env_kwargs, render_mode=render_mode)] * num_envs
         )
 
-        env.seed = self.seed
+        if seed is not None:
+            env.reset(seed=seed)
+        else:
+            env.reset(seed=self.seed)
 
         # Keep track of statistics
         env = gym.wrappers.RecordEpisodeStatistics(env)
 
         if self.normalize_observation:
             env = gym.wrappers.NormalizeObservation(env)
+
+        if self.envs_wrappers is not None:
+            for wrapper in self.envs_wrappers:
+                env = wrapper(env)
 
         return env
 
@@ -142,6 +158,64 @@ class BaseAlgorithm:
         os.makedirs(self.videos_folder, exist_ok=True)
         os.makedirs(self.models_folder, exist_ok=True)
         os.makedirs(self.plots_folder, exist_ok=True)
+
+    def save_git_info(self):
+        """ Saves the git info of the repository.
+        """
+        import subprocess
+        import sys
+
+        abs_path_git_directory = os.path.abspath(__file__)
+        # Stop at src in case someone cloned the repo with a different name
+        while abs_path_git_directory.split("/")[-1] != "src":
+            abs_path_git_directory = os.path.dirname(abs_path_git_directory)
+        abs_path_git_directory = os.path.dirname(abs_path_git_directory)
+
+        # Get the remote url
+        remote_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"], 
+                                             cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        # Get the commit hash
+        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], 
+                                              cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        # Get the commit message
+        commit_message = subprocess.check_output(["git", "log", "-1", "--pretty=%B"],
+                                                 cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        # Get the branch name
+        branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                                              cwd=abs_path_git_directory).decode("utf-8").strip()
+
+        clone_command = "git clone {}".format(remote_url)
+        checkout_command = 'git checkout -b "{}" {}'.format(f"{branch_name}_{commit_hash}", commit_hash)
+        command_to_run = "python " + " ".join(sys.argv)
+
+        git_infos = "| RLib Git info | Value |\n"
+        git_infos += "| :--- | ---: |\n"
+        git_infos += "| Remote url | {} |\n".format(remote_url)
+        git_infos += "| Branch name | {} |\n".format(branch_name)
+        git_infos += "| Commit hash | {} |\n".format(commit_hash)
+        git_infos += "| Commit message | {} |\n".format(commit_message)
+        git_infos += "| Clone command | {} |\n".format(clone_command)
+        git_infos += "| Checkout command | {} |\n".format(checkout_command)
+        git_infos += "| Command to run | {} |\n".format(command_to_run)
+
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+        writer.add_text("RLib Git info", git_infos)
+        writer.close()
+        
+
+    def save_hyperparameters(self):
+        """ Saves the hyperparameters of the algorithm.
+        """
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+        summary = "| Hyperparameter | Value |\n"
+        summary += "| :--- | ---: |\n"
+        for key, value in self.kwargs.items():
+            summary += "| {} | {} |\n".format(key, value)
+        writer.add_text("Hyperparameters", summary)
+        writer.close()
 
     @abstractclassmethod
     def train_(self) -> None:
@@ -154,6 +228,8 @@ class BaseAlgorithm:
         """ Default training method, with a sanity on the creation of the folders.
         """
         self._create_folders()
+        self.save_hyperparameters()
+        self.save_git_info()
         self.train_()
 
     @abstractclassmethod
@@ -217,6 +293,10 @@ class BaseAlgorithm:
         else:
             env = self.make_env(render_mode=None, num_envs=1)
 
+        env = env.envs[0]
+
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        env.reset(seed=seed)  # Random seed to avoid overfitting to the same initial state
         rewards = []
 
         for _ in range(num_episodes):
@@ -251,7 +331,7 @@ class BaseAlgorithm:
                 continue
             self.load(os.path.join(self.models_folder, model), verbose=False)
             try:
-                self.test(save_video=True, video_path=os.path.join(self.videos_folder, model[:-4] + ".mp4"))
+                self.test(save_video=True, video_path=os.path.join(self.videos_folder, ".".join(model.split('.')[:-1]) + ".mp4"))
             except Exception as e:
                 print("Failed to save video for model {}".format(model))
                 print(e)
