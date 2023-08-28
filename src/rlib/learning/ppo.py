@@ -166,6 +166,7 @@ class PPO(BaseAlgorithm):
         super().__init__(env_kwargs, num_envs, max_episode_length, max_total_reward,
                          save_folder, normalize_observation, seed)
 
+        # If the action space is continuous, apply some wrappers
         if isinstance(self.action_space, Box):
             self.envs_wrappers = [
                 ClipAction, lambda env: TransformObservation(env, lambda obs: np.clip(obs, -10, 10)),
@@ -376,6 +377,9 @@ class PPO(BaseAlgorithm):
             if "episode" in info and not np.all(done==0):
                 writer.add_scalar("Train/Episode Length", info["episode"]["l"].sum() / done.sum(), self.global_step)
                 writer.add_scalar("Train/Episode Reward", info["episode"]["r"].sum() / done.sum(), self.global_step)
+
+                if np.any(info['episode']['l'] > 1600):
+                    print(info['episode'])
 
         obs = torch.tensor(obs, dtype=torch.float32)
         next_value = self.current_agent.get_value(obs).detach().squeeze(-1)
