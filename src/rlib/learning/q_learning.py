@@ -2,7 +2,8 @@
 from tqdm import trange
 import pickle
 import numpy as np
-from .base_algorithm import BaseAlgorithm
+from rlib.learning.base_algorithm import BaseAlgorithm
+from rlib.agents import get_agent
 
 class QLearning(BaseAlgorithm):
     """
@@ -42,18 +43,19 @@ class QLearning(BaseAlgorithm):
     """
 
     def __init__(
-            self, env_kwargs, agent_fn,
+            self, env_kwargs, agent_kwargs,
             max_episode_length=-1, max_total_reward=-1,
             save_folder="qlearning", num_iterations=1000,
             lr=0.03, discount=0.99, epsilon_greedy=0.9, epsilon_decay=0.9999, epsilon_min=0.01,
-            test_every=10, num_test_episodes=5, verbose=True
+            test_every=10, num_test_episodes=5, verbose=True, seed=42
             ):
         """
         Initialize the QLearning algorithm.
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_fn: The function to create the agent, should be a QTable with a sample(state, action) method and get_action(state) method.
+        :param agent_kwargs: Kwargs to call `rlib.agents.q_table.QTable(**agent_kwargs)`.
+        :type agent_kwargs: dict
         :param max_episode_length: The maximum length of an episode, by default -1 (no limit).
         :type max_episode_length: int, optional
         :param max_total_reward: The maximum total reward to get in the episode, by default -1 (no limit).
@@ -78,11 +80,19 @@ class QLearning(BaseAlgorithm):
         :type num_test_episodes: int, optional
         :param verbose: Whether to print the results of each episode. Default is True.
         :type verbose: bool, optional
+        :param seed: The seed for the environment. Default is 42.
+        :type seed: int, optional
 
         """
-        super().__init__(env_kwargs, agent_fn, max_episode_length, max_total_reward, save_folder)
 
-        self.env_kwargs = env_kwargs
+        self.kwargs = locals()
+        self.kwargs.pop("self")
+        self.kwargs.pop("__class__")
+
+        super().__init__(env_kwargs=env_kwargs, num_envs=1, max_episode_length=max_episode_length, 
+                         max_total_reward=max_total_reward, save_folder=save_folder,
+                         normalize_observation=False, seed=seed)
+
         self.lr = lr
         self.discount = discount
         self.epsilon_greedy = epsilon_greedy
@@ -93,7 +103,9 @@ class QLearning(BaseAlgorithm):
         self.test_every = test_every
         self.num_test_episodes = num_test_episodes
 
-        self.current_agent = self.agent_fn()
+        agent_kwargs_copy = agent_kwargs.copy()  # To be sure that the original dict is not modified
+        agent_kwargs_copy["env_kwargs"] = env_kwargs
+        self.current_agent = get_agent(self.obs_space, self.action_space, agent_kwargs_copy, q_table=True)
         self.current_iteration = 0
         self.train_rewards = []
         self.mean_test_rewards = []
@@ -102,7 +114,7 @@ class QLearning(BaseAlgorithm):
 
     def train_(self):
 
-        env = self.make_env()
+        env = self.make_env().envs[0]
 
         if self.verbose:
             pbar = trange(self.num_iterations)
