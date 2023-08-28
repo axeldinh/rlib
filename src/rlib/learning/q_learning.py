@@ -28,11 +28,11 @@ class QLearning(BaseAlgorithm):
 
         import gymnasium
         from rlib.learning import QLearning
-        from rlib.agents import QTable
 
-        env_fn = lambda render_mode=None: gymnasium.make('MountainCar-V0', render_mode=render_mode)
-        agent_fn = lambda: QTable(env_fn(), grid_size=20)
-        model = QLearning(env_fn, agent_fn, lr=0.03, discount=0.99, epsilon_greedy=0.1, epsilon_decay=0.9999, epsilon_min=0.01))
+        env_kwargs = {'id': 'MountainCar-v0'}
+        agent_kwargs = {'grid_size': 20}
+
+        model = QLearning(env_kwargs, agent_kwargs, lr=0.03, discount=0.99, epsilon_greedy=0.1, epsilon_decay=0.9999, epsilon_min=0.01))
 
         model.train()
         mean, std = model.test(10)
