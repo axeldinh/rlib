@@ -56,7 +56,7 @@ class EvolutionStrategy(BaseAlgorithm):
     """ Implementation of the Evolution Strategy algorithm.
 
     This algorithm does not need gradient computation, it is therefore
-    compatible with any agent.
+    compatible with any agent, however, for simplicity `PyTorch` network are used here.
 
     The update rule of the weights is given by:
 
@@ -75,31 +75,14 @@ class EvolutionStrategy(BaseAlgorithm):
 
         import gymnasium as gym
         from rlib.learning import EvolutionStrategy
-        import numpy as np
-
-        class Agent:
-
-            def __init__(self, params=None):
-                if params is None:
-                    self.params = np.random.rand(4) * 2 - 1
-                else:
-                    self.params = params.copy()
-
-            def get_action(self, observation):
-                return 1 if np.dot(self.params, observation) > 0 else 0
-            
-            def set_params(self, params):
-                self.params = params["params"].copy()
-
-            def get_params(self):
-                return {"params": self.params.copy()}
                     
-
-        env_fn = lambda render_mode: gym.make("CartPole-v0", render_mode=render_mode)
         agent_fn = Agent
-        model = EvolutionStrategy(env_fn, agent_fn)
+
+        env_kwargs = {'id': 'CartPole-v0'}
+        agent_kwargs = {'hidden_sizes': [32, 32]}
+
+        model = EvolutionStrategy(env_kwargs, agent_kwargs, num_agents=30, num_iterations=300)
         model.train()
-        model.test()
         model.save_plots()
         model.save_videos()
 
@@ -120,8 +103,8 @@ class EvolutionStrategy(BaseAlgorithm):
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_kwargs: A function that returns an agent, without arguments. It should have a `get_action(observation)` method. Here, the agent should also have a `set_params(params)` method and a `get_params()` method, where `params` is a dictionary of parameters (like in `PyTorch`).
-        :type agent_kwargs: function
+        :param agent_kwargs: Kwargs used to call `rlib.agents.get_agent(**agent_kwargs)`, some parameters are automatically infered (inputs sizes, MLP or CNN, ...).
+        :type agent_kwargs: dict
         :param num_agents: The number of agents to use to compute the gradient, by default 30
         :type num_agents: int, optional
         :param num_iterations: The number of iterations to run the algorithm, by default 300
@@ -143,10 +126,10 @@ class EvolutionStrategy(BaseAlgorithm):
         :param stop_max_score: Whether to stop the training when the maximum score is reached on a test run, by default False
         :param verbose: Whether to display a progression bar during training, by default True
         :type verbose: bool, optional
-        :raises ValueError: If the parameters of the agent are not `torch.Tensor` or `np.ndarray`
-        :raises ValueError: If the `agent.get_params()` do not return a dictionary.
-        :raises ValueError: If the agent does not have a `set_params` method.
-        :raises ValueError: If the agent does not have a `get_params` method.
+        :param normalize_observation: Whether to normalize the observation, by default False
+        :type normalize_observation: bool, optional
+        :param seed: The seed to use for the environment, by default 42
+        :type seed: int, optional
 
         """
 
