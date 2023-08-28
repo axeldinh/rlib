@@ -84,13 +84,6 @@ class MLP(nn.Module):
             else:
                 self.layers.append(last_layer)
 
-
-        if not requires_grad:
-            self.remove_grad()
-
-        if params is not None:
-            self.set_params(params)
-
     def forward(self, x):
         """
         Computes the forward pass of the MLP.
@@ -104,36 +97,6 @@ class MLP(nn.Module):
         x = self.layers(x)
 
         return x
-        
-
-    def remove_grad(self):
-        """
-        Removes the gradient of the MLP.
-        """
-
-        for p in self.parameters():
-            p.requires_grad = False
-    
-    def set_params(self, params):
-        """
-        Sets the parameters of the MLP.
-
-        :param params: The parameters to set.
-        :type params: dict
-        """
-
-        for k, p in self.named_parameters():
-            p.copy_(params[k])
-    
-    def get_params(self):
-        """
-        Returns the parameters of the MLP.
-
-        :return: The parameters of the MLP.
-        :rtype: dict
-        """
-
-        return {k: p.clone() for k, p in self.named_parameters()}
 
     def init_layer_ppo(layer, std=np.sqrt(2), bias_constant=0.0):
 

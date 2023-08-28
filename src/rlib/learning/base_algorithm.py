@@ -209,6 +209,9 @@ class BaseAlgorithm:
     def save_hyperparameters(self):
         """ Saves the hyperparameters of the algorithm.
         """
+        if not hasattr(self, "kwargs"):
+            raise ValueError("kwargs should be defined in the __init__ method of the algorithm, this can be done by setting `self.kwargs = locals()` and removing `self``and `__class__`")
+        
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
         summary = "| Hyperparameter | Value |\n"
         summary += "| :--- | ---: |\n"

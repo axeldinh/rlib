@@ -1,19 +1,62 @@
 
 import os
-import pickle
 from tqdm import trange
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from torch.utils.tensorboard import SummaryWriter
+
+from gymnasium.spaces import Discrete
 
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.utils import play_episode
+from rlib.agents import get_agent
+
+class EvolutionStrategyAgent(torch.nn.Module):
+
+    def __init__(self, obs_space, action_space, agent_kwargs):
+
+        super().__init__()
+
+        self.obs_space = obs_space
+        self.action_space = action_space
+        self.agent_kwargs = agent_kwargs
+
+        self.discrete_action = isinstance(action_space, Discrete)
+
+        self.agent = get_agent(obs_space, action_space, agent_kwargs)
+
+        # Remove the gradient
+        for param in self.agent.parameters():
+            param.requires_grad = False
+
+    def forward(self, x):
+        return self.agent(x)
+    
+    def get_action(self, x):
+        is_numpy = isinstance(x, np.ndarray)
+        if is_numpy:
+            x = torch.from_numpy(x).to(torch.float32)
+        output = self.forward(x)
+        if self.discrete_action:
+            return output.argmax().item()
+        else:
+            return output.detach().numpy()
+        
+    def get_params(self):
+        return self.agent.state_dict()
+
+    def set_params(self, params):
+        self.agent.load_state_dict(params)
+
+
+
 
 class EvolutionStrategy(BaseAlgorithm):
     """ Implementation of the Evolution Strategy algorithm.
 
     This algorithm does not need gradient computation, it is therefore
-    compatible with any agent.
+    compatible with any agent, however, for simplicity `PyTorch` network are used here.
 
     The update rule of the weights is given by:
 
@@ -32,52 +75,36 @@ class EvolutionStrategy(BaseAlgorithm):
 
         import gymnasium as gym
         from rlib.learning import EvolutionStrategy
-        import numpy as np
-
-        class Agent:
-
-            def __init__(self, params=None):
-                if params is None:
-                    self.params = np.random.rand(4) * 2 - 1
-                else:
-                    self.params = params.copy()
-
-            def get_action(self, observation):
-                return 1 if np.dot(self.params, observation) > 0 else 0
-            
-            def set_params(self, params):
-                self.params = params["params"].copy()
-
-            def get_params(self):
-                return {"params": self.params.copy()}
                     
-
-        env_fn = lambda render_mode: gym.make("CartPole-v0", render_mode=render_mode)
         agent_fn = Agent
-        model = EvolutionStrategy(env_fn, agent_fn)
+
+        env_kwargs = {'id': 'CartPole-v0'}
+        agent_kwargs = {'hidden_sizes': [32, 32]}
+
+        model = EvolutionStrategy(env_kwargs, agent_kwargs, num_agents=30, num_iterations=300)
         model.train()
-        model.test()
         model.save_plots()
         model.save_videos()
 
     """
     
     def __init__(
-            self, env_kwargs, agent_fn, num_agents=30,
+            self, env_kwargs, agent_kwargs, num_agents=30,
             num_iterations=300, lr=0.03, sigma=0.1,
             test_every=50, num_test_episodes=5, max_episode_length=-1, 
             max_total_reward=-1, save_folder="evolution_strategy",
             stop_max_score=False,
             verbose=True,
             normalize_observation=False,
+            seed=42
             ):
         """
         Initialize the Evolution Strategy algorithm.
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_fn: A function that returns an agent, without arguments. It should have a `get_action(observation)` method. Here, the agent should also have a `set_params(params)` method and a `get_params()` method, where `params` is a dictionary of parameters (like in `PyTorch`).
-        :type agent_fn: function
+        :param agent_kwargs: Kwargs used to call `rlib.agents.get_agent(**agent_kwargs)`, some parameters are automatically infered (inputs sizes, MLP or CNN, ...).
+        :type agent_kwargs: dict
         :param num_agents: The number of agents to use to compute the gradient, by default 30
         :type num_agents: int, optional
         :param num_iterations: The number of iterations to run the algorithm, by default 300
@@ -99,16 +126,22 @@ class EvolutionStrategy(BaseAlgorithm):
         :param stop_max_score: Whether to stop the training when the maximum score is reached on a test run, by default False
         :param verbose: Whether to display a progression bar during training, by default True
         :type verbose: bool, optional
-        :raises ValueError: If the parameters of the agent are not `torch.Tensor` or `np.ndarray`
-        :raises ValueError: If the `agent.get_params()` do not return a dictionary.
-        :raises ValueError: If the agent does not have a `set_params` method.
-        :raises ValueError: If the agent does not have a `get_params` method.
+        :param normalize_observation: Whether to normalize the observation, by default False
+        :type normalize_observation: bool, optional
+        :param seed: The seed to use for the environment, by default 42
+        :type seed: int, optional
 
         """
 
-        super().__init__(env_kwargs, agent_fn, max_episode_length=max_episode_length, 
+        self.kwargs = locals()
+        del self.kwargs["self"]
+        del self.kwargs["__class__"]
+        
+        super().__init__(env_kwargs, 1, max_episode_length=max_episode_length, 
                          max_total_reward=max_total_reward, save_folder=save_folder,
-                         normalize_observation=normalize_observation)
+                         normalize_observation=normalize_observation, seed=seed)
+        
+        self.agent_fn = lambda: EvolutionStrategyAgent(self.obs_space, self.action_space, agent_kwargs)
 
         self.env_kwargs = env_kwargs
         self.num_agents = num_agents
@@ -121,7 +154,7 @@ class EvolutionStrategy(BaseAlgorithm):
         self.verbose = verbose
 
         self.current_iteration = 0
-        self.current_agent = agent_fn()
+        self.current_agent = self.agent_fn()
         self.mean_train_rewards = []
         self.std_train_rewards = []
         self.mean_test_rewards = []
@@ -234,7 +267,9 @@ class EvolutionStrategy(BaseAlgorithm):
 
     def train_(self):
 
-        env = self.make_env()
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+
+        env = self.make_env().envs[0]
         
         params_agent = self.current_agent.get_params()
         agent = self.agent_fn()
@@ -272,6 +307,9 @@ class EvolutionStrategy(BaseAlgorithm):
             std_reward = np.std(train_rewards)
             self.std_train_rewards.append(std_reward)
 
+            writer.add_scalar("train/mean_reward", mean_reward, n)
+            writer.add_scalar("train/std_reward", std_reward, n)
+
             if std_reward > 1e-6:
 
                 rewards_normalized = (train_rewards - mean_reward) / std_reward
@@ -286,6 +324,8 @@ class EvolutionStrategy(BaseAlgorithm):
                 mean_test_r, std_test_r = self.test(num_episodes=self.num_test_episodes)
                 self.mean_test_rewards.append(mean_test_r)
                 self.std_test_rewards.append(std_test_r)
+                writer.add_scalar("test/mean_reward", mean_test_r, n)
+                writer.add_scalar("test/std_reward", std_test_r, n)
                 model_saving_path = os.path.join(self.models_folder, f"iteration_{self.current_iteration}.pkl")
                 self.save(model_saving_path)
 
@@ -303,17 +343,9 @@ class EvolutionStrategy(BaseAlgorithm):
 
     def save(self, path):
 
-        to_save = {
-            "num_agents": self.num_agents,
-            "num_iterations": self.num_iterations,
-            "lr": self.lr,
-            "sigma": self.sigma,
-            "test_every": self.test_every,
-            "max_episode_length": self.max_episode_length,
-            "max_total_reward": self.max_total_reward,
-            "save_folder": self.save_folder,
-            "verbose": self.verbose,
-            "current_iteration": self.current_iteration,
+        kwargs = self.kwargs.copy()
+
+        running_results = {
             "mean_train_rewards": self.mean_train_rewards,
             "std_train_rewards": self.std_train_rewards,
             "mean_test_rewards": self.mean_test_rewards,
@@ -321,16 +353,39 @@ class EvolutionStrategy(BaseAlgorithm):
             "current_agent": self.current_agent
         }
 
-        with open(path, "wb") as f:
-            pickle.dump(to_save, f)
+        model = {
+            "current_agent": self.current_agent.state_dict(),
+        }
+
+        folders = {
+            "save_folder": self.save_folder,
+            "models_folder": self.models_folder,
+            "videos_folder": self.videos_folder,
+            "plots_folder": self.plots_folder,
+        }
+
+        data = {
+            "kwargs": kwargs,
+            "running_results": running_results,
+            "model": model,
+            "folders": folders
+        }
+
+        torch.save(data, path)
     
     def load(self, path, verbose=True):
-
-        with open(path, "rb") as f:
-            loaded = pickle.load(f)
         
-        for key in loaded:
-            setattr(self, key, loaded[key])
+        data = torch.load(path)
+        
+        self.__init__(**data["kwargs"])
+
+        for k in data["running_results"]:
+            setattr(self, k, data["running_results"][k])
+
+        self.current_agent.load_state_dict(data["model"]["current_agent"])
+
+        for k in data["folders"]:
+            setattr(self, k, data["folders"][k])
 
         if verbose:
             print("Loaded EvolutionStrategy model from {}".format(path))
@@ -359,42 +414,3 @@ class EvolutionStrategy(BaseAlgorithm):
         plt.close()
 
         print("Saved plots in {}".format(path))
-
-class EvolutionStrategyAgent(torch.nn.Module):
-
-    def __init__(self, state_space, action_space, agent_kwargs):
-
-        super().__init__()
-
-        self.state_space = state_space
-        self.action_space = action_space
-        self.agent_kwargs = agent_kwargs
-
-        if isinstance(self.action_space, Discrete):
-            output_dim = self.action_space.n
-        elif isinstance(self.action_space, Box):
-            n_dims = len(self.action_space.shape)
-            if n_dims != 1:
-                raise ValueError("The action space should have 1 dimension.")
-            output_dim = self.action_space.shape[0]
-        
-        if isinstance(self.state_space, Discrete):
-            input_dim = self.state_space.n
-            network_type = "mlp"
-        elif isinstance(self.state_space, Box):
-            n_dims = len(self.state_space.shape)
-            if n_dims == 1:
-                network_type = "mlp"
-                input_dim = self.state_space.shape[0]
-            elif n_dims == 2:
-                network_type = "cnn"
-            else:
-                raise ValueError("The state space should have 1 or 2 dimensions.")
-            
-        if network_type == "mlp":
-            agent_kwargs["input_size"] = input_dim
-            agent_kwargs["output_size"] = output_dim
-            self.network = get_agent('mlp', **agent_kwargs)
-        elif network_type == "cnn":
-            raise NotImplementedError("CNNs are not supported yet.")
-
