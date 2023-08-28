@@ -6,8 +6,51 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+from gymnasium.spaces import Discrete
+
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.utils import play_episode
+from rlib.agents import get_agent
+
+class EvolutionStrategyAgent(torch.nn.Module):
+
+    def __init__(self, obs_space, action_space, agent_kwargs):
+
+        super().__init__()
+
+        self.obs_space = obs_space
+        self.action_space = action_space
+        self.agent_kwargs = agent_kwargs
+
+        self.discrete_action = isinstance(action_space, Discrete)
+
+        self.agent = get_agent(obs_space, action_space, agent_kwargs)
+
+        # Remove the gradient
+        for param in self.agent.parameters():
+            param.requires_grad = False
+
+    def forward(self, x):
+        return self.agent(x)
+    
+    def get_action(self, x):
+        is_numpy = isinstance(x, np.ndarray)
+        if is_numpy:
+            x = torch.from_numpy(x).to(torch.float32)
+        output = self.forward(x)
+        if self.discrete_action:
+            return output.argmax().item()
+        else:
+            return output.detach().numpy()
+        
+    def get_params(self):
+        return self.agent.state_dict()
+
+    def set_params(self, params):
+        self.agent.load_state_dict(params)
+
+
+
 
 class EvolutionStrategy(BaseAlgorithm):
     """ Implementation of the Evolution Strategy algorithm.
@@ -63,21 +106,21 @@ class EvolutionStrategy(BaseAlgorithm):
     """
     
     def __init__(
-            self, env_kwargs, agent_fn, num_agents=30,
+            self, env_kwargs, agent_kwargs, num_agents=30,
             num_iterations=300, lr=0.03, sigma=0.1,
             test_every=50, num_test_episodes=5, max_episode_length=-1, 
             max_total_reward=-1, save_folder="evolution_strategy",
             stop_max_score=False,
             verbose=True,
-            normalize_observation=False,
+            normalize_observation=False
             ):
         """
         Initialize the Evolution Strategy algorithm.
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_fn: A function that returns an agent, without arguments. It should have a `get_action(observation)` method. Here, the agent should also have a `set_params(params)` method and a `get_params()` method, where `params` is a dictionary of parameters (like in `PyTorch`).
-        :type agent_fn: function
+        :param agent_kwargs: A function that returns an agent, without arguments. It should have a `get_action(observation)` method. Here, the agent should also have a `set_params(params)` method and a `get_params()` method, where `params` is a dictionary of parameters (like in `PyTorch`).
+        :type agent_kwargs: function
         :param num_agents: The number of agents to use to compute the gradient, by default 30
         :type num_agents: int, optional
         :param num_iterations: The number of iterations to run the algorithm, by default 300
@@ -106,9 +149,15 @@ class EvolutionStrategy(BaseAlgorithm):
 
         """
 
-        super().__init__(env_kwargs, agent_fn, max_episode_length=max_episode_length, 
+        self.kwargs = locals()
+        del self.kwargs["self"]
+        del self.kwargs["__class__"]
+        
+        super().__init__(env_kwargs, 1, max_episode_length=max_episode_length, 
                          max_total_reward=max_total_reward, save_folder=save_folder,
                          normalize_observation=normalize_observation)
+        
+        self.agent_fn = lambda: EvolutionStrategyAgent(self.obs_space, self.action_space, agent_kwargs)
 
         self.env_kwargs = env_kwargs
         self.num_agents = num_agents
@@ -121,7 +170,7 @@ class EvolutionStrategy(BaseAlgorithm):
         self.verbose = verbose
 
         self.current_iteration = 0
-        self.current_agent = agent_fn()
+        self.current_agent = self.agent_fn()
         self.mean_train_rewards = []
         self.std_train_rewards = []
         self.mean_test_rewards = []
@@ -234,7 +283,7 @@ class EvolutionStrategy(BaseAlgorithm):
 
     def train_(self):
 
-        env = self.make_env()
+        env = self.make_env().envs[0]
         
         params_agent = self.current_agent.get_params()
         agent = self.agent_fn()
