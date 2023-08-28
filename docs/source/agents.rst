@@ -34,7 +34,3 @@ MLP
 .. autoclass:: agents.mlp.MLP
     
     .. automethod:: __init__
-    .. automethod:: get_params
-    .. automethod:: set_params
-    .. automethod:: get_action
-    .. automethod:: remove_grad
