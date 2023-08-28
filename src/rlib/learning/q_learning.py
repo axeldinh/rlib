@@ -1,7 +1,10 @@
 
+import os
 from tqdm import trange
-import pickle
 import numpy as np
+
+from torch.utils.tensorboard import SummaryWriter
+
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.agents import get_agent
 
@@ -114,6 +117,8 @@ class QLearning(BaseAlgorithm):
 
     def train_(self):
 
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+
         env = self.make_env().envs[0]
 
         if self.verbose:
@@ -157,6 +162,9 @@ class QLearning(BaseAlgorithm):
             self.train_rewards.append(episode_reward)
             self.episode_lengths.append(episode_length)
 
+            writer.add_scalar("train_reward", episode_reward, self.current_iteration)
+            writer.add_scalar("episode_length", episode_length, self.current_iteration)
+
             self.epsilon_greedy = max(self.epsilon_min, self.epsilon_greedy * self.epsilon_decay)
 
             self.current_iteration += 1
@@ -165,6 +173,8 @@ class QLearning(BaseAlgorithm):
                 mean, std = self.test(self.num_test_episodes)
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
+                writer.add_scalar("test_reward", mean, self.current_iteration)
+                writer.add_scalar("test_reward_std", std, self.current_iteration)
                 self.save(self.models_folder + f"/iter_{n+1}.pkl")
 
             if self.verbose:

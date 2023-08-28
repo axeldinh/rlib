@@ -181,7 +181,7 @@ class BaseAlgorithm:
 
         # Get the commit message
         commit_message = subprocess.check_output(["git", "log", "-1", "--pretty=%B"],
-                                                 cwd=abs_path_git_directory).decode("utf-8").strip()
+                                                 cwd=abs_path_git_directory).decode("utf-8").strip().replace("|", " ")
 
         # Get the branch name
         branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"],
