@@ -13,8 +13,6 @@ from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.utils import play_episode
 from rlib.agents import get_agent
 
-# TODO: Missing seed, tensorboard logs, check documentation
-
 class EvolutionStrategyAgent(torch.nn.Module):
 
     def __init__(self, obs_space, action_space, agent_kwargs):
