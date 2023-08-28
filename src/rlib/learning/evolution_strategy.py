@@ -5,12 +5,15 @@ from tqdm import trange
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from gymnasium.spaces import Discrete
 
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.utils import play_episode
 from rlib.agents import get_agent
+
+# TODO: Missing seed, tensorboard logs, check documentation
 
 class EvolutionStrategyAgent(torch.nn.Module):
 
@@ -352,17 +355,9 @@ class EvolutionStrategy(BaseAlgorithm):
 
     def save(self, path):
 
-        to_save = {
-            "num_agents": self.num_agents,
-            "num_iterations": self.num_iterations,
-            "lr": self.lr,
-            "sigma": self.sigma,
-            "test_every": self.test_every,
-            "max_episode_length": self.max_episode_length,
-            "max_total_reward": self.max_total_reward,
-            "save_folder": self.save_folder,
-            "verbose": self.verbose,
-            "current_iteration": self.current_iteration,
+        kwargs = self.kwargs.copy()
+
+        running_results = {
             "mean_train_rewards": self.mean_train_rewards,
             "std_train_rewards": self.std_train_rewards,
             "mean_test_rewards": self.mean_test_rewards,
@@ -370,16 +365,39 @@ class EvolutionStrategy(BaseAlgorithm):
             "current_agent": self.current_agent
         }
 
-        with open(path, "wb") as f:
-            pickle.dump(to_save, f)
+        model = {
+            "current_agent": self.current_agent.state_dict(),
+        }
+
+        folders = {
+            "save_folder": self.save_folder,
+            "models_folder": self.models_folder,
+            "videos_folder": self.videos_folder,
+            "plots_folder": self.plots_folder,
+        }
+
+        data = {
+            "kwargs": kwargs,
+            "running_results": running_results,
+            "model": model,
+            "folders": folders
+        }
+
+        torch.save(data, path)
     
     def load(self, path, verbose=True):
-
-        with open(path, "rb") as f:
-            loaded = pickle.load(f)
         
-        for key in loaded:
-            setattr(self, key, loaded[key])
+        data = torch.load(path)
+        
+        self.__init__(**data["kwargs"])
+
+        for k in data["running_results"]:
+            setattr(self, k, data["running_results"][k])
+
+        self.current_agent.load_state_dict(data["model"]["current_agent"])
+
+        for k in data["folders"]:
+            setattr(self, k, data["folders"][k])
 
         if verbose:
             print("Loaded EvolutionStrategy model from {}".format(path))
