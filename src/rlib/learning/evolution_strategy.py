@@ -286,6 +286,8 @@ class EvolutionStrategy(BaseAlgorithm):
 
     def train_(self):
 
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+
         env = self.make_env().envs[0]
         
         params_agent = self.current_agent.get_params()
@@ -324,6 +326,9 @@ class EvolutionStrategy(BaseAlgorithm):
             std_reward = np.std(train_rewards)
             self.std_train_rewards.append(std_reward)
 
+            writer.add_scalar("train/mean_reward", mean_reward, n)
+            writer.add_scalar("train/std_reward", std_reward, n)
+
             if std_reward > 1e-6:
 
                 rewards_normalized = (train_rewards - mean_reward) / std_reward
@@ -338,6 +343,8 @@ class EvolutionStrategy(BaseAlgorithm):
                 mean_test_r, std_test_r = self.test(num_episodes=self.num_test_episodes)
                 self.mean_test_rewards.append(mean_test_r)
                 self.std_test_rewards.append(std_test_r)
+                writer.add_scalar("test/mean_reward", mean_test_r, n)
+                writer.add_scalar("test/std_reward", std_test_r, n)
                 model_saving_path = os.path.join(self.models_folder, f"iteration_{self.current_iteration}.pkl")
                 self.save(model_saving_path)
 
