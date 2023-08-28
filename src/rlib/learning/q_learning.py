@@ -163,8 +163,9 @@ class QLearning(BaseAlgorithm):
             self.train_rewards.append(episode_reward)
             self.episode_lengths.append(episode_length)
 
-            #writer.add_scalar("train_reward", episode_reward, self.current_iteration)
-            #writer.add_scalar("episode_length", episode_length, self.current_iteration)
+            # Slows down the training
+            writer.add_scalar("train_reward", episode_reward, self.current_iteration)
+            writer.add_scalar("episode_length", episode_length, self.current_iteration)
 
             self.epsilon_greedy = max(self.epsilon_min, self.epsilon_greedy * self.epsilon_decay)
 
