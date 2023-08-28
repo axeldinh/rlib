@@ -3,6 +3,7 @@ import os
 from tqdm import trange
 import numpy as np
 
+import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from rlib.learning.base_algorithm import BaseAlgorithm
@@ -213,11 +214,11 @@ class QLearning(BaseAlgorithm):
             "folders": folders
         }
         
-        np.save(data, path)
+        torch.save(data, path)
     
     def load(self, path, verbose=True):
         
-        data = np.load(path, allow_pickle=True).item()
+        data = torch.load(path, allow_pickle=True).item()
 
         self.__init__(**data["kwargs"])
 
