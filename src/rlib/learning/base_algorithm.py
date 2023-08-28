@@ -191,7 +191,7 @@ class BaseAlgorithm:
         checkout_command = 'git checkout -b "{}" {}'.format(f"{branch_name}_{commit_hash}", commit_hash)
         command_to_run = "python " + " ".join(sys.argv)
 
-        git_infos = "| Git info | Value |\n"
+        git_infos = "| RLib Git info | Value |\n"
         git_infos += "| :--- | ---: |\n"
         git_infos += "| Remote url | {} |\n".format(remote_url)
         git_infos += "| Branch name | {} |\n".format(branch_name)
@@ -202,7 +202,7 @@ class BaseAlgorithm:
         git_infos += "| Command to run | {} |\n".format(command_to_run)
 
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
-        writer.add_text("Git info", git_infos)
+        writer.add_text("RLib Git info", git_infos)
         writer.close()
         
 
