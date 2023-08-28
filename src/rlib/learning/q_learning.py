@@ -218,7 +218,7 @@ class QLearning(BaseAlgorithm):
     
     def load(self, path, verbose=True):
         
-        data = torch.load(path, allow_pickle=True).item()
+        data = torch.load(path)
 
         self.__init__(**data["kwargs"])
 
