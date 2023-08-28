@@ -175,35 +175,49 @@ class QLearning(BaseAlgorithm):
 
     def save(self, path):
 
-        data = {
+        kwargs = self.kwargs.copy()
+
+        running_results = {
             "train_rewards": self.train_rewards,
             "mean_test_rewards": self.mean_test_rewards,
             "std_test_rewards": self.std_test_rewards,
             "episode_lengths": self.episode_lengths,
-            "lr": self.lr,
-            "discount": self.discount,
-            "epsilon_greedy": self.epsilon_greedy,
-            "epsilon_decay": self.epsilon_decay,
-            "epsilon_min": self.epsilon_min,
-            "num_iterations": self.num_iterations,
-            "current_iteration": self.current_iteration,
-            "current_agent": self.current_agent,
-            "test_every": self.test_every,
-            "num_test_episodes": self.num_test_episodes,
-            "verbose": self.verbose,
-            "max_episode_length": self.max_episode_length,
-            "max_total_reward": self.max_total_reward
+            "self.current_iteration": self.current_iteration,
         }
 
-        with open(path, "wb") as f:
-            pickle.dump(data, f)
+        model = {
+            "q_table": self.current_agent.q_table
+        }
+
+        folders = {
+            "save_folder": self.save_folder,
+            "models_folder": self.models_folder,
+            "plots_folder": self.plots_folder,
+            "videos_folder": self.videos_folder
+        }
+
+        data = {
+            "kwargs": kwargs,
+            "running_results": running_results,
+            "model": model,
+            "folders": folders
+        }
+        
+        np.save(data, path)
     
     def load(self, path, verbose=True):
+        
+        data = np.load(path, allow_pickle=True).item()
 
-        data = pickle.load(open(path, "rb"))
+        self.__init__(**data["kwargs"])
 
-        for key, value in data.items():
-            setattr(self, key, value)
+        for key in data["running_results"]:
+            setattr(self, key, data["running_results"][key])
+            
+        self.current_agent.q_table = data["model"]["q_table"]
+
+        for key in data["folders"]:
+            setattr(self, key, data["folders"][key])
 
         if verbose:
             print("Loaded model from", path)
