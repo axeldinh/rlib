@@ -254,9 +254,11 @@ class QLearning(BaseAlgorithm):
         plt.ylabel("Reward")
         plt.legend()
         plt.savefig(self.plots_folder + "/rewards.png")
+        plt.close()
 
         plt.figure()
         plt.plot(self.episode_lengths)
         plt.xlabel("Episode")
         plt.ylabel("Episode length")
         plt.savefig(self.plots_folder + "/episode_lengths.png")
+        plt.close()
