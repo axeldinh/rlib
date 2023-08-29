@@ -1,12 +1,13 @@
-from collections import deque
 import datetime
 import os
 import time
-from tqdm import trange
 import numpy as np
 import torch
 import torch.nn .functional as F
-from .base_algorithm import BaseAlgorithm
+
+from gymnasium.spaces import Discrete
+
+from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.agents import get_agent
 from rlib.learning.replay_buffer import ReplayBuffer
 
@@ -78,7 +79,7 @@ class DeepQLearning(BaseAlgorithm):
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_kwargs: The kwargs for calling `get_agent(agent_type, **agent_kwargs)`.
+        :param agent_kwargs: The kwargs for calling `get_agent(obs_space, action_space, **agent_kwargs)`.
         :type agent_kwargs: dict
         :param max_episode_length: The maximum length of an episode, by default -1 (no limit).
         :type max_episode_length: int, optional
@@ -121,6 +122,9 @@ class DeepQLearning(BaseAlgorithm):
 
         """
 
+        self.kwargs = locals()
+        self.kwargs.pop("self")
+        self.kwargs.pop("__class__")
         
         
         super().__init__(env_kwargs, 
@@ -146,6 +150,9 @@ class DeepQLearning(BaseAlgorithm):
 
         self.current_time_step = 0
         self.running_average = []
+
+        if not isinstance(self.action_space, Discrete):
+            raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space))
 
         if self.obs_shape.__len__() == 1:
 
@@ -349,29 +356,7 @@ class DeepQLearning(BaseAlgorithm):
     
     def save(self, path):
 
-        dqn_kwargs = {
-            "env_kwargs": self.env_kwargs,
-            "agent_kwargs": self.agent_kwargs,
-            "max_episode_length": self.max_episode_length,
-            "max_total_reward": self.max_total_reward,
-            "save_folder": os.path.abspath(os.path.dirname(self.save_folder)),
-            "lr": self.lr,
-            "discount": self.discount,
-            "epsilon_greedy": self.epsilon_greedy,
-            "epsilon_decay": self.epsilon_decay,
-            "epsilon_min": self.epsilon_min,
-            "num_time_steps": self.num_time_steps,
-            "learning_starts": self.learning_starts,
-            "update_every": self.update_every,
-            "main_target_update": self.main_target_update,
-            "verbose": self.verbose,
-            "test_every": self.test_every,
-            "num_test_episodes": self.num_test_episodes,
-            "batch_size": self.batch_size,
-            "size_replay_buffer": self.size_replay_buffer,
-            "max_grad_norm": self.max_grad_norm,
-            "normalize_observation": self.normalize_observation
-        }
+        kwargs = self.kwargs.copy()
 
         saving_folders = {
             "save_folder": self.save_folder,
@@ -400,7 +385,7 @@ class DeepQLearning(BaseAlgorithm):
         }
 
         data = {
-            "dqn_kwargs": dqn_kwargs,
+            "kwargs": kwargs,
             "saving_folders": saving_folders,
             "model_parameters": model_parameters,
             "running_results": running_results
@@ -412,7 +397,7 @@ class DeepQLearning(BaseAlgorithm):
 
         data = torch.load(path)
 
-        self.__init__(**data['dqn_kwargs'])
+        self.__init__(**data['kwargs'])
 
         for key in data['saving_folders'].keys():
             setattr(self, key, data['saving_folders'][key])
