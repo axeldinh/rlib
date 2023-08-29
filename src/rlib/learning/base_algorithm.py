@@ -97,15 +97,6 @@ class BaseAlgorithm:
         self.obs_space = env.single_observation_space
         del env
 
-        #if isinstance(self.action_space, gym.spaces.Discrete):
-        #    self.action_space_type = "discrete"
-        #    self.action_shape = (self.action_space.n,)
-        #elif isinstance(self.action_space, gym.spaces.Box):
-        #    self.action_space_type = "continuous"
-        #    self.action_shape = self.action_space.shape
-        #else:
-        #    raise ValueError("Unknown action space type, action type is {}".format(type(self.action_space)))
-
         self.save_folder = save_folder
         run_number = 0
         if os.path.exists(self.save_folder):

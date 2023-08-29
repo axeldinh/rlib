@@ -11,6 +11,29 @@ from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.agents import get_agent
 from rlib.learning.replay_buffer import ReplayBuffer
 
+class DeepQLearningAgent(torch.nn.Module):
+
+    def __init__(self, obs_space, action_space, agent_kwargs):
+
+        super().__init__()
+
+        self.agent = get_agent(obs_space, action_space, agent_kwargs)
+
+    def forward(self, x):
+        return self.agent(x)
+    
+    def get_action(self, x):
+
+        is_numpy = isinstance(x, np.ndarray)
+        if is_numpy:
+            x = torch.tensor(x, dtype=torch.float32)
+        logits = self.forward(x)
+        action = torch.argmax(logits, dim=-1)
+        if is_numpy:
+            action = action.detach().numpy()
+        return action
+
+
 class DeepQLearning(BaseAlgorithm):
     """
     Deep Q-Learning algorithm.
@@ -127,9 +150,9 @@ class DeepQLearning(BaseAlgorithm):
         self.kwargs.pop("__class__")
         
         
-        super().__init__(env_kwargs, 
-                         max_episode_length, max_total_reward, 
-                         save_folder, normalize_observation)
+        super().__init__(env_kwargs=env_kwargs, num_envs=1,
+                         max_episode_length=max_episode_length, max_total_reward=max_total_reward, 
+                         save_folder=save_folder, normalize_observation=normalize_observation)
 
         self.agent_kwargs = agent_kwargs
         self.lr = lr
@@ -153,29 +176,9 @@ class DeepQLearning(BaseAlgorithm):
 
         if not isinstance(self.action_space, Discrete):
             raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space))
-
-        if self.obs_shape.__len__() == 1:
-
-            num_obs = self.obs_shape[0]
-            num_actions = self.action_shape[0]
-
-            agent_kwargs['input_size'] = num_obs
-            agent_kwargs['output_size'] = num_actions
-            agent_kwargs['requires_grad'] = True
-            agent_kwargs['type_actions'] = self.action_space_type
-
-            if self.action_space_type != "discrete":
-
-                raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space_type))
-            
-            self.current_agent = get_agent("mlp", **agent_kwargs)
-            self.target_agent = get_agent("mlp", **agent_kwargs)
-
-        elif self.obs_shape.__len__() in [2, 3]:
-            raise NotImplementedError("CNN not yet implemented, observations must be 1D.")
         
-        else:
-            raise ValueError("Observations must be 1D, 2D or 3D. Current observations shape: {}".format(self.obs_shape))
+        self.current_agent = DeepQLearningAgent(self.obs_space, self.action_space, self.agent_kwargs)
+        self.target_agent = DeepQLearningAgent(self.obs_space, self.action_space, self.agent_kwargs)
 
         # Copy the parameters of the main model to the target model
         for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
@@ -197,7 +200,7 @@ class DeepQLearning(BaseAlgorithm):
         
     def train_(self):
         
-        env = self.make_env()
+        env = self.make_env().envs[0]
 
         self._populate_replay_buffer(env)  # Populate the replay buffer with random samples
 
@@ -471,7 +474,5 @@ class DeepQLearning(BaseAlgorithm):
         plt.yscale("log")
         plt.savefig(self.plots_folder + "/losses.png", bbox_inches="tight")
         plt.close()
-
-
 
         print("Figures saved in ", self.plots_folder)
