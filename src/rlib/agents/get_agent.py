@@ -3,7 +3,7 @@ from rlib.agents.mlp import MLP
 
 from gymnasium.spaces import Discrete, Box
 
-def get_agent(obs_space, action_space, kwargs, q_table=False):
+def get_agent(obs_space, action_space, kwargs, q_table=False, ddpg_q_agent=False):
     """ Global function to get an agent from its type and parameters
 
     This is the function used in the algorithms when a kwargs for an agent are given.
@@ -34,8 +34,12 @@ def get_agent(obs_space, action_space, kwargs, q_table=False):
     elif isinstance(obs_space, Box):
         n_dims = len(obs_space.shape)
         if n_dims == 1:
-            kwargs["input_size"] = obs_space.shape[0]
-            kwargs["output_size"] = output_dim
+            if ddpg_q_agent:
+                kwargs["input_size"] = obs_space.shape[0] + output_dim
+                kwargs["output_size"] = 1
+            else:
+                kwargs["input_size"] = obs_space.shape[0]
+                kwargs["output_size"] = output_dim
             agent_type = "mlp"
         elif n_dims == 2:
             agent_type = "cnn"

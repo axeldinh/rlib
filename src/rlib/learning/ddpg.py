@@ -6,6 +6,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from gymnasium.spaces import Box
+
 from rlib.agents import get_agent
 from .base_algorithm import BaseAlgorithm
 from .replay_buffer import ReplayBuffer
@@ -190,30 +192,12 @@ class DDPG(BaseAlgorithm):
         self.current_episode = 0
         self.running_average = []
 
-        if self.obs_shape.__len__() == 1:
-
-            num_obs = self.obs_shape[0]
-            num_actions = self.action_shape[0]
-
-            mu_kwargs['input_size'] = num_obs
-            mu_kwargs['output_size'] = num_actions
-            q_kwargs['input_size'] = num_obs + num_actions
-            q_kwargs['output_size'] = 1
-            mu_kwargs['requires_grad'] = True
-            q_kwargs['requires_grad'] = True
-            
-            if self.action_space_type == "continuous":
-                mu_kwargs['type_actions'] = 'continuous'
-                mu_kwargs['action_space'] = self.action_space
-            else:
-                raise ValueError("Only continuous action spaces are supported for DDPG.")
-
-            mu = get_agent("mlp", **mu_kwargs)
-            q = get_agent("mlp", **q_kwargs)
-
-        if self.obs_shape.__len__() in [2, 3]:
-
-            raise NotImplementedError("CNN agents not implemented yet.")
+        if not isinstance(self.action_space, Box):
+            raise ValueError("Only continuous action spaces are supported for DDPG.")
+        
+        mu = get_agent(self.obs_space, self.action_space, mu_kwargs)
+        q_kwargs_copy = q_kwargs.copy()
+        q = get_agent(self.obs_space, self.action_space, q_kwargs_copy, ddpg_q_agent=True)
         
         self.current_agent = DDPGAgent(mu, q, twin_q)
         self.target_agent = DDPGAgent(copy.deepcopy(mu), copy.deepcopy(q), twin_q)
@@ -245,7 +229,7 @@ class DDPG(BaseAlgorithm):
         
     def train_(self):
 
-        env = self.make_env()
+        env = self.make_env().envs[0]
 
         self._populate_replay_buffer(env)
 
@@ -275,8 +259,8 @@ class DDPG(BaseAlgorithm):
                 action = self.current_agent.get_action(state)
                 action += np.random.randn(*action.shape) * self.action_noise
                 action = np.clip(action,
-                                 self.current_agent.mu.action_space.low, 
-                                 self.current_agent.mu.action_space.high)
+                                 self.action_space.low, 
+                                 self.action_space.high)
 
                 new_state, reward, done, _, _ = env.step(action)
 
