@@ -111,6 +111,7 @@ class QLearning(BaseAlgorithm):
         agent_kwargs_copy["env_kwargs"] = env_kwargs
         self.current_agent = get_agent(self.obs_space, self.action_space, agent_kwargs_copy, q_table=True)
         self.current_iteration = 0
+        self.global_step = 0
         self.train_rewards = []
         self.mean_test_rewards = []
         self.std_test_rewards = []
@@ -160,12 +161,14 @@ class QLearning(BaseAlgorithm):
                 if episode_reward >= self.max_total_reward and self.max_total_reward != -1:
                     done = True
 
+            self.global_step += episode_length
+
             self.train_rewards.append(episode_reward)
             self.episode_lengths.append(episode_length)
 
             # Slows down the training
-            writer.add_scalar("Train/Reward", episode_reward, self.current_iteration)
-            writer.add_scalar("Train/Episode Length", episode_length, self.current_iteration)
+            writer.add_scalar("Train/Reward", episode_reward, self.global_step)
+            writer.add_scalar("Train/Episode Length", episode_length, self.global_step)
 
             self.epsilon_greedy = max(self.epsilon_min, self.epsilon_greedy * self.epsilon_decay)
 
@@ -175,8 +178,8 @@ class QLearning(BaseAlgorithm):
                 mean, std = self.test(self.num_test_episodes)
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
-                writer.add_scalar("Test/Mean Reward", mean, self.current_iteration)
-                writer.add_scalar("Test/Std Reward", std, self.current_iteration)
+                writer.add_scalar("Test/Mean Reward", mean, self.global_step)
+                writer.add_scalar("Test/Std Reward", std, self.global_step)
                 self.save(self.models_folder + f"/iter_{n+1}.pt")
 
             if self.verbose:
