@@ -1,9 +1,11 @@
 import datetime
-import os
 import time
+import os
+
 import numpy as np
 import torch
 import torch.nn .functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 from gymnasium.spaces import Discrete
 
@@ -199,6 +201,8 @@ class DeepQLearning(BaseAlgorithm):
         self.best_test_reward = -np.inf
         
     def train_(self):
+
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
         
         env = self.make_env().envs[0]
 
@@ -236,6 +240,7 @@ class DeepQLearning(BaseAlgorithm):
             if self.current_time_step % self.update_every == 0:
                 loss = self.update_weights()
                 self.losses.append(loss.item())
+                writer.add_scalar("Loss", loss.item(), self.current_time_step)
                 if self.current_time_step % self.main_target_update == 0:
                     for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
                         target_param.data.copy_(param.data)
@@ -256,11 +261,15 @@ class DeepQLearning(BaseAlgorithm):
                 mean, std = self.test(self.num_test_episodes)
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
+                writer.add_scalar("Test/Mean Reward", mean, self.current_time_step)
+                writer.add_scalar("Test/Std Reward", std, self.current_time_step)
 
                 if self.running_average.__len__() == 0:
                     self.running_average.append(mean)
                 else:
                     self.running_average.append(0.9 * self.running_average[-1] + 0.1 * mean)
+
+                writer.add_scalar("Test/Running Average", self.running_average[-1], self.current_time_step)
 
                 if mean > self.best_test_reward:
                     self.best_test_reward = mean
@@ -287,6 +296,8 @@ class DeepQLearning(BaseAlgorithm):
                 done = False
                 self.episodes_lengths.append(length_episode)
                 self.train_rewards.append(episode_reward)
+                writer.add_scalar("Train/Reward", episode_reward, self.current_time_step)
+                writer.add_scalar("Train/Episode Length", length_episode, self.current_time_step)
                 length_episode = 0
                 episode_reward = 0
 
