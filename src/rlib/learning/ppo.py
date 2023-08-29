@@ -336,8 +336,8 @@ class PPO(BaseAlgorithm):
 
                 mean, std = self.test(num_episodes=self.num_test_agents)
 
-                writer.add_scalar("Test/Reward Mean", mean, self.global_step)
-                writer.add_scalar("Test/Reward Std", std, self.global_step)
+                writer.add_scalar("Test/Mean Reward", mean, self.global_step)
+                writer.add_scalar("Test/Std Reward", std, self.global_step)
 
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
@@ -378,7 +378,7 @@ class PPO(BaseAlgorithm):
 
             if "episode" in info and not np.all(done==0):
                 writer.add_scalar("Train/Episode Length", info["episode"]["l"].sum() / done.sum(), self.global_step)
-                writer.add_scalar("Train/Episode Reward", info["episode"]["r"].sum() / done.sum(), self.global_step)
+                writer.add_scalar("Train/Reward", info["episode"]["r"].sum() / done.sum(), self.global_step)
 
                 if np.any(info['episode']['l'] > 1600):
                     print(info['episode'])

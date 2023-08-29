@@ -315,8 +315,8 @@ class DDPG(BaseAlgorithm):
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
 
-                writer.add_scalar("Test/Reward", mean, self.current_episode)
-                writer.add_scalar("Test/Std", std, self.current_episode)
+                writer.add_scalar("Test/Mean Reward", mean, self.current_episode)
+                writer.add_scalar("Test/Std Reward", std, self.current_episode)
 
                 if self.running_average.__len__() == 0:
                     self.running_average.append(mean)

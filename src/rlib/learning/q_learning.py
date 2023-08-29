@@ -164,8 +164,8 @@ class QLearning(BaseAlgorithm):
             self.episode_lengths.append(episode_length)
 
             # Slows down the training
-            writer.add_scalar("train_reward", episode_reward, self.current_iteration)
-            writer.add_scalar("episode_length", episode_length, self.current_iteration)
+            writer.add_scalar("Train/Reward", episode_reward, self.current_iteration)
+            writer.add_scalar("Train/Episode Length", episode_length, self.current_iteration)
 
             self.epsilon_greedy = max(self.epsilon_min, self.epsilon_greedy * self.epsilon_decay)
 
@@ -175,8 +175,8 @@ class QLearning(BaseAlgorithm):
                 mean, std = self.test(self.num_test_episodes)
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
-                writer.add_scalar("test_reward", mean, self.current_iteration)
-                writer.add_scalar("test_reward_std", std, self.current_iteration)
+                writer.add_scalar("Test/Mean Reward", mean, self.current_iteration)
+                writer.add_scalar("Test/Std Reward", std, self.current_iteration)
                 self.save(self.models_folder + f"/iter_{n+1}.pt")
 
             if self.verbose:
