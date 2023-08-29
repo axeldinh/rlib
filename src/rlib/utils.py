@@ -76,4 +76,4 @@ def play_episode(env, agent=None,
     if save_video:
         video_writer.release()
     
-    return total_reward
+    return total_reward, episode_length

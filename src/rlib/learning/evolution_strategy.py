@@ -154,6 +154,7 @@ class EvolutionStrategy(BaseAlgorithm):
         self.verbose = verbose
 
         self.current_iteration = 0
+        self.global_step = 0
         self.current_agent = self.agent_fn()
         self.mean_train_rewards = []
         self.std_train_rewards = []
@@ -296,10 +297,11 @@ class EvolutionStrategy(BaseAlgorithm):
             for i in progression_bar2:
 
                 agent.set_params(self._get_test_parameters(params_agent, self.sigma, train_noise[i]))
-                train_rewards[i] = play_episode(
+                train_rewards[i], episode_length = play_episode(
                     env=env, agent=agent, 
                     max_episode_length=self.max_episode_length, 
                     max_total_reward=self.max_total_reward)
+                self.global_step += episode_length
 
             mean_reward = np.mean(train_rewards)
             self.mean_train_rewards.append(mean_reward)
@@ -307,8 +309,8 @@ class EvolutionStrategy(BaseAlgorithm):
             std_reward = np.std(train_rewards)
             self.std_train_rewards.append(std_reward)
 
-            writer.add_scalar("Train/Reward", mean_reward, n)
-            writer.add_scalar("train/Std Reward", std_reward, n)
+            writer.add_scalar("Train/Reward", mean_reward, self.global_step)
+            writer.add_scalar("Train/Std Reward", std_reward, self.global_step)
 
             if std_reward > 1e-6:
 
@@ -324,8 +326,8 @@ class EvolutionStrategy(BaseAlgorithm):
                 mean_test_r, std_test_r = self.test(num_episodes=self.num_test_episodes)
                 self.mean_test_rewards.append(mean_test_r)
                 self.std_test_rewards.append(std_test_r)
-                writer.add_scalar("Test/Mean Reward", mean_test_r, n)
-                writer.add_scalar("Test/Std Reward", std_test_r, n)
+                writer.add_scalar("Test/Mean Reward", mean_test_r, self.global_step)
+                writer.add_scalar("Test/Std Reward", std_test_r, self.global_step)
                 model_saving_path = os.path.join(self.models_folder, f"iteration_{self.current_iteration}.pkl")
                 self.save(model_saving_path)
 

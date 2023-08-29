@@ -294,7 +294,7 @@ class BaseAlgorithm:
         rewards = []
 
         for _ in range(num_episodes):
-            r  = play_episode(
+            r, _  = play_episode(
                 env=env, agent=self.current_agent, 
                 max_episode_length=self.max_episode_length, 
                 max_total_reward=self.max_total_reward,
