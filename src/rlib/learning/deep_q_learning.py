@@ -33,6 +33,7 @@ class DeepQLearningAgent(torch.nn.Module):
         action = torch.argmax(logits, dim=-1)
         if is_numpy:
             action = action.detach().numpy()
+
         return action
 
 
@@ -172,7 +173,7 @@ class DeepQLearning(BaseAlgorithm):
         self.size_replay_buffer = size_replay_buffer
         self.max_grad_norm = max_grad_norm
 
-        self.update_epsilon = lambda step: self.epsilon_start - (self.epsilon_start - self.epsilon_min) * step / self.num_time_steps + self.epsilon_min
+        self.update_epsilon = lambda step: (self.epsilon_min - self.epsilon_start) * step / (self.num_time_steps-1) + self.epsilon_start
         self.epsilon = self.epsilon_start
 
         self.current_time_step = 0
@@ -243,9 +244,10 @@ class DeepQLearning(BaseAlgorithm):
                 loss = self.update_weights()
                 self.losses.append(loss.item())
                 writer.add_scalar("Loss", loss.item(), self.current_time_step)
-                if self.current_time_step % self.main_target_update == 0:
-                    for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
-                        target_param.data.copy_(param.data)
+            
+            if self.current_time_step % self.main_target_update == 0:
+                for target_param, param in zip(self.target_agent.parameters(), self.current_agent.parameters()):
+                    target_param.data.copy_(param.data)
 
             state = new_state
             
@@ -311,7 +313,7 @@ class DeepQLearning(BaseAlgorithm):
         Populate the replay buffer with random samples from the environment.
 
         This is done until the replay buffer is filled with :attr:`learning_starts` samples.
-        Furthermore, the actions are sampled randomly with probability :attr:`epsilon_greedy`.
+        Furthermore, the actions are sampled randomly with probability :attr:`epsilon`.
 
         :param env: The environment to sample from.
         :type env: gymnasium.ENV
