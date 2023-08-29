@@ -157,6 +157,10 @@ class DDPG(BaseAlgorithm):
         :raises NotImplementedError: If the observation space is not 1D, 2D or 3D.
 
         """
+
+        self.kwargs = locals()
+        self.kwargs.pop("self")
+        self.kwargs.pop("__class__")
                         
         super().__init__(env_kwargs=env_kwargs, num_envs=1, 
                          max_episode_length=max_episode_length, max_total_reward=max_total_reward, 
@@ -468,31 +472,7 @@ class DDPG(BaseAlgorithm):
     
     def save(self, path):
 
-        ddpg_kwargs = {
-            "env_kwargs": self.env_kwargs,
-            "mu_kwargs": self.mu_kwargs,
-            "q_kwargs": self.q_kwargs,
-            "max_episode_length": self.max_episode_length,
-            "max_total_reward": self.max_total_reward,
-            "save_folder": os.path.abspath(os.path.dirname(self.save_folder)),
-            "q_lr": self.q_lr,
-            "mu_lr": self.mu_lr,
-            "discount": self.discount,
-            "action_noise": self.action_noise,
-            "target_noise": self.target_noise,
-            "delay_policy_update": self.delay_policy_update,
-            "twin_q": self.twin_q,
-            "num_episodes": self.num_episodes,
-            "learning_starts": self.learning_starts,
-            "target_update_tau": self.target_update_tau,
-            "verbose": self.verbose,
-            "test_every": self.test_every,
-            "num_test_episodes": self.num_test_episodes,
-            "batch_size": self.batch_size,
-            "size_replay_buffer": self.size_replay_buffer,
-            "max_grad_norm": self.max_grad_norm,
-            "normalize_observation": self.normalize_observation,
-        }
+        kwargs = self.kwargs.copy()
 
         saving_folders = {
             "save_folder": self.save_folder,
@@ -522,7 +502,7 @@ class DDPG(BaseAlgorithm):
         }
 
         data = {
-            "ddpg_kwargs": ddpg_kwargs,
+            "kwargs": kwargs,
             "saving_folders": saving_folders,
             "model_parameters": model_parameters,
             "running_results": running_results,
@@ -535,7 +515,7 @@ class DDPG(BaseAlgorithm):
         data = torch.load(path)
 
         # Reinitialize the model using the kwargs
-        self.__init__(**data['ddpg_kwargs'])
+        self.__init__(**data['kwargs'])
 
         # The exact saving folders need to fixed again (their is an increment during init)
         for key in data['saving_folders'].keys():
