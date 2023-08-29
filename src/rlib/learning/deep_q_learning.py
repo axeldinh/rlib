@@ -90,7 +90,8 @@ class DeepQLearning(BaseAlgorithm):
             num_time_steps=100_000,
             learning_starts=50_000,
             update_every=4,
-            main_target_update=100,
+            number_updates=None,
+            main_target_update=10,
             verbose=True,
             test_every=50_000,
             num_test_episodes=10,
@@ -127,6 +128,8 @@ class DeepQLearning(BaseAlgorithm):
         :type learning_starts: int, optional
         :param update_every: The number of time steps between each update of the neural network, by default 4.
         :type update_every: int, optional
+        :param number_updates: The number of updates to perform at each time step, by default set to :attr:`update_every`.
+        :type number_updates: int, optional
         :param main_target_update: The number of time steps between each update of the target network, by default 100.
         :type main_target_update: int, optional
         :param verbose: Whether to print the results, by default True.
@@ -165,6 +168,7 @@ class DeepQLearning(BaseAlgorithm):
         self.num_time_steps = num_time_steps
         self.learning_starts = max(learning_starts, batch_size)
         self.update_every = update_every
+        self.number_updates = number_updates if number_updates is not None else update_every
         self.main_target_update = main_target_update
         self.verbose = verbose
         self.test_every = test_every
@@ -241,7 +245,8 @@ class DeepQLearning(BaseAlgorithm):
             self.replay_buffer.store(state.copy(), action, reward, new_state.copy(), done)
 
             if self.current_time_step % self.update_every == 0:
-                loss = self.update_weights()
+                for _ in range(self.update_every):
+                    loss = self.update_weights()
                 self.losses.append(loss.item())
                 writer.add_scalar("Loss", loss.item(), self.current_time_step)
             
