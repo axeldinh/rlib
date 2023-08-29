@@ -68,7 +68,7 @@ class DeepQLearning(BaseAlgorithm):
         model = DeepQLearning(
             env_kwargs, agent_kwargs,
             lr=0.03, discount=0.99,
-            epsilon_greedy=0.1, epsilon_decay=0.9999, epsilon_min=0.01
+            epsilon_start=0.1, epsilon_min=0.01
             )
 
         model.train()
@@ -84,8 +84,7 @@ class DeepQLearning(BaseAlgorithm):
             save_folder="deep_qlearning",
             lr=3e-4,
             discount=0.99,
-            epsilon_greedy=0.1,
-            epsilon_decay=0.99,
+            epsilon_start=0.1,
             epsilon_min=0.01,
             num_time_steps=100_000,
             learning_starts=50_000,
@@ -117,10 +116,8 @@ class DeepQLearning(BaseAlgorithm):
         :type lr: float, optional
         :param discount: The discount factor, by default 0.99.
         :type discount: float, optional
-        :param epsilon_greedy: The probability to take a random action, by default 0.1.
-        :type epsilon_greedy: float, optional
-        :param epsilon_decay: The decay of the epsilon greedy, by default 0.99.
-        :type epsilon_decay: float, optional
+        :param epsilon_start: The probability to take a random action, by default 0.1.
+        :type epsilon_start: float, optional
         :param epsilon_min: The minimum value of epsilon greedy, by default 0.01.
         :type epsilon_min: float, optional
         :param num_time_steps: The number of time steps to train the agent, by default 100_000.
@@ -162,8 +159,7 @@ class DeepQLearning(BaseAlgorithm):
         self.agent_kwargs = agent_kwargs
         self.lr = lr
         self.discount = discount
-        self.epsilon_greedy = epsilon_greedy
-        self.epsilon_decay = epsilon_decay
+        self.epsilon_start = epsilon_start
         self.epsilon_min = epsilon_min
         self.num_time_steps = num_time_steps
         self.learning_starts = max(learning_starts, batch_size)
@@ -175,6 +171,9 @@ class DeepQLearning(BaseAlgorithm):
         self.batch_size = batch_size
         self.size_replay_buffer = size_replay_buffer
         self.max_grad_norm = max_grad_norm
+
+        self.update_epsilon = lambda step: self.epsilon_start - (self.epsilon_start - self.epsilon_min) * step / self.num_time_steps + self.epsilon_min
+        self.epsilon = self.epsilon_start
 
         self.current_time_step = 0
         self.running_average = []
@@ -226,7 +225,7 @@ class DeepQLearning(BaseAlgorithm):
             test_progress = (n+1) % self.test_every == 0
             test_progress += (n+1) == self.num_time_steps
                 
-            if np.random.rand() < self.epsilon_greedy:
+            if np.random.rand() < self.epsilon:
                 action = env.action_space.sample()
             else:
                 action = self.target_agent.get_action(state)
@@ -251,7 +250,7 @@ class DeepQLearning(BaseAlgorithm):
             state = new_state
             
             # Update epsilon greedy, to take less random actions
-            self.epsilon_greedy = max(self.epsilon_min, self.epsilon_greedy * self.epsilon_decay)
+            self.epsilon = max(self.epsilon_min, self.update_epsilon(self.current_time_step))
 
             length_episode += 1
 
@@ -285,12 +284,13 @@ class DeepQLearning(BaseAlgorithm):
                 description = f"TimeStep: [{self.current_time_step}/{self.num_time_steps}]"
                 description += ", Test Reward: {:.2f} (+/- {:.2f})".format(self.mean_test_rewards[-1], self.std_test_rewards[-1])
                 description += ", Running Average: {:.2f}".format(self.running_average[-1])
+                description += ", Epsilon Greedy: {:.2f}".format(self.epsilon)
                 times.append(time.time() - time_start)
                 total_time = np.mean(times) * self.num_time_steps / self.test_every
                 current_time = np.sum(times)
                 total_time = str(datetime.timedelta(seconds=int(total_time)))
                 current_time = str(datetime.timedelta(seconds=int(current_time)))
-                description += f", Time: [{self.current_time_step}/{self.num_time_steps}]"
+                description += f", Time: [{current_time}/{total_time}]"
                 print(description)
                 time_start = time.time()
 
@@ -325,7 +325,7 @@ class DeepQLearning(BaseAlgorithm):
             if len(self.replay_buffer) >= self.size_replay_buffer:
                 break
 
-            if np.random.rand() < self.epsilon_greedy:
+            if np.random.rand() < self.epsilon:
                 action = env.action_space.sample()
             else:
                 action = self.target_agent.get_action(obs)
@@ -430,7 +430,7 @@ class DeepQLearning(BaseAlgorithm):
             print("Model loaded from: ", path)
             print(f"Current Iteration: [{self.current_time_step}/{self.num_time_steps}]")
             print(f"Learning Rate: {self.lr}, Discount: {self.discount}")
-            print(f"Epsilon Greedy: {self.epsilon_greedy}, Epsilon Decay: {self.epsilon_decay}, Epsilon Min: {self.epsilon_min}")
+            print(f"Epsilon Start: {self.epsilon_start}, Epsilon Min: {self.epsilon_min}")
             print(f"Learning Starts: {self.learning_starts}, Update Every: {self.update_every}, Main Target Update: {self.main_target_update}")
             print(f"Test Every: {self.test_every}, Num Test Episodes: {self.num_test_episodes}")
             print(f"Batch Size: {self.batch_size}, Size Replay Buffer: {self.size_replay_buffer}")
