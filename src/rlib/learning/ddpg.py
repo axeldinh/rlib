@@ -5,6 +5,7 @@ from datetime import timedelta
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 from gymnasium.spaces import Box
 
@@ -229,6 +230,8 @@ class DDPG(BaseAlgorithm):
         
     def train_(self):
 
+        writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
+
         env = self.make_env().envs[0]
 
         self._populate_replay_buffer(env)
@@ -294,10 +297,16 @@ class DDPG(BaseAlgorithm):
 
             loss = {'q': np.mean(episode_losses['q']), 'mu': np.mean(episode_losses['mu'])}
             self.losses.append(loss)
+
+            writer.add_scalar("Losses/Q", loss['q'], self.current_episode)
+            writer.add_scalar("Losses/Mu", loss['mu'], self.current_episode)
             
             # Save the rewards
             self.episodes_lengths.append(length_episode)
             self.train_rewards.append(episode_reward)
+
+            writer.add_scalar("Train/Reward", episode_reward, self.current_episode)
+            writer.add_scalar("Train/Episode Length", length_episode, self.current_episode)
 
             self.current_episode += 1
 
@@ -306,10 +315,15 @@ class DDPG(BaseAlgorithm):
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
 
+                writer.add_scalar("Test/Reward", mean, self.current_episode)
+                writer.add_scalar("Test/Std", std, self.current_episode)
+
                 if self.running_average.__len__() == 0:
                     self.running_average.append(mean)
                 else:
                     self.running_average.append(0.9 * self.running_average[-1] + 0.1 * mean)
+
+                writer.add_scalar("Train/Running Reward", self.running_average[-1], self.current_episode)
 
                 if mean > self.best_test_reward:
                     self.best_test_reward = mean
