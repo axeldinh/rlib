@@ -145,6 +145,8 @@ class DeepQLearning(BaseAlgorithm):
         :type max_grad_norm: int, optional
         :param normalize_observation: Whether to normalize the observation in `[-1, 1]`, by default False.
         :type normalize_observation: bool, optional
+        :param seed: The seed for the environment, by default 42.
+        :type seed: int, optional
 
         """
 
