@@ -304,6 +304,8 @@ class DeepQLearning(BaseAlgorithm):
                 length_episode = 0
                 episode_reward = 0
 
+        writer.close()
+
     def _populate_replay_buffer(self, env):
         """
         Populate the replay buffer with random samples from the environment.

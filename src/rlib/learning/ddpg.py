@@ -345,6 +345,8 @@ class DDPG(BaseAlgorithm):
 
             run_time = time.time() - start
             times.append(run_time)
+
+        writer.close()
                 
     def _update_target_weights(self, tau=0.01):
         """

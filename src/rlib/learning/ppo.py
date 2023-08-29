@@ -352,6 +352,8 @@ class PPO(BaseAlgorithm):
         mean, std = self.test(num_episodes=self.num_test_agents)
         print(f"Final Test Reward = {mean:.2f} (+-{std:.2f})")
 
+        writer.close()
+
 
     def rollout(self, writer):
 
