@@ -98,6 +98,7 @@ class DeepQLearning(BaseAlgorithm):
             size_replay_buffer=100_000,
             max_grad_norm=10,
             normalize_observation=False,
+            seed=42
             ):
         """
         Initializes the DeepQLearning algorithm.
@@ -154,7 +155,7 @@ class DeepQLearning(BaseAlgorithm):
         
         super().__init__(env_kwargs=env_kwargs, num_envs=1,
                          max_episode_length=max_episode_length, max_total_reward=max_total_reward, 
-                         save_folder=save_folder, normalize_observation=normalize_observation)
+                         save_folder=save_folder, normalize_observation=normalize_observation, seed=seed)
 
         self.agent_kwargs = agent_kwargs
         self.lr = lr
