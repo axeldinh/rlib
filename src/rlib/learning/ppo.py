@@ -26,11 +26,6 @@ class PPOAgent(nn.Module):
         self.state_space = state_space
         self.action_space = action_space
 
-        if isinstance(state_space, Discrete):
-            state_shape = state_space.n
-        elif isinstance(state_space, Box):
-            state_shape = state_space.shape
-
         if isinstance(action_space, Discrete):
             action_shape = action_space.n
             self.continuous = False
@@ -392,6 +387,7 @@ class PPO(BaseAlgorithm):
         }
 
         running_results = {
+            "global_step": self.global_step,
             "mean_test_rewards": self.mean_test_rewards,
             "std_test_rewards": self.std_test_rewards,
             "losses": self.losses,
