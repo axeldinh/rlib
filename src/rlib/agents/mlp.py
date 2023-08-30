@@ -7,25 +7,18 @@ class MLP(nn.Module):
     Simple Multi-Layer Perceptron (MLP) class.
 
     Note that, in order to use algorithm such that :class:`learning.evolution_strategy.EvolutionStrategy`,
-    the gradient of the MLP should be disabled. This can be done by calling :func:`remove_grad` method,
-    or by setting the `requires_grad` argument to False.
+    the gradient of the MLP should be disabled. This can be done by setting the `requires_grad` argument of each tensor to False.
 
     Example:
 
     .. code-block:: python
-
+    
         import torch
         from rlib.agents import MLP
 
-        agent = MLP(4, [32, 32], 2, activation='relu', requires_grad=True)  # 4 observations, 2 actions, 2 hidden layers of 32 neurons each
-        params = agent.get_params()  # get the parameters of the MLP
-        agent.remove_grad()  # remove the gradient of the MLP
-        agent.set_params(params)  # set the parameters of the MLP
-
-        x = torch.randn(10, 4)  # 10 observations of size 4
-        y = agent(x)  # forward pass of the MLP
-        action = agent.get_action(x[0])  # get the actions to take
-
+        agent = MLP(4, [32, 32], 2, activation='relu')  # 4 observations, 2 actions, 2 hidden layers of 32 neurons each
+        x = torch.randn(4) 
+        y = agent(x)
 
     :var layers: A torch.nn.Sequential object containing the layers of the MLP.
     :vartype layers: torch.nn.Sequential
@@ -33,8 +26,8 @@ class MLP(nn.Module):
     """
 
     def __init__(self, input_size, hidden_sizes, 
-                 output_size, activation='relu', params=None, 
-                 requires_grad=False, init_weights=None):
+                 output_size, activation='relu', 
+                 init_weights=None):
         """
         Initialize the MLP.
 
@@ -46,17 +39,12 @@ class MLP(nn.Module):
         :type output_size: int
         :param activation: The activation function to use. Should be one of 'relu', 'tanh' or 'sigmoid'. Default is 'relu'.
         :type activation: str, optional
-        :param params: The parameters of the MLP. If None, the parameters are initialized randomly. Default is None.
-        :type params: dict, optional
-        :param requires_grad: Whether to compute the gradient of the MLP. Default is False.
-        :type requires_grad: bool, optional
         :raises ValueError: If `activation` is not one of 'relu', 'tanh' or 'sigmoid'.
 
         """
 
         super().__init__()
 
-        self.requires_grad = requires_grad
 
         if activation == 'relu':
             activation = nn.ReLU

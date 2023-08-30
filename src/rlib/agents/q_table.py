@@ -54,12 +54,12 @@ class QTable:
     def __init__(self, env_kwargs, grid_size=10):
         """
         Initialize the QTable class
+
         :param env_kwargs: gymnasium environment kwargs, is used to call `gym.make(**env_kwargs)`.
         :param grid_size: number of discretization for each dimension of the state space.
         :type env: dict
         :type grid_size: int, optional
         :raises ValueError: if the action space is not discrete
-        :raises ValueError: if the state space is not bounded
         
         """
 
