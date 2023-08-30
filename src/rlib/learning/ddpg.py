@@ -189,6 +189,7 @@ class DDPG(BaseAlgorithm):
         self.normalize_observation = normalize_observation
 
         self.current_episode = 0
+        self.global_step = 0
         self.running_average = []
 
         if not isinstance(self.action_space, Box):
@@ -279,14 +280,14 @@ class DDPG(BaseAlgorithm):
                 if length_episode >= self.max_episode_length and self.max_episode_length != -1:
                     done = True
 
+            self.global_step += length_episode
+
             episode_losses = {'q': [], 'mu': []}
             for _ in range(length_episode):
                 # When the episode is done, we update the weights
                 loss = self.update_weights()
                 episode_losses['q'].append(loss['q'])
                 episode_losses['mu'].append(loss['mu'])
-
-            # TODO : REMOVE THE LR UPDATE OR INTEGRATE IT IN THE CODE
 
             if self.lr_annealing:
 
@@ -299,15 +300,15 @@ class DDPG(BaseAlgorithm):
             loss = {'q': np.mean(episode_losses['q']), 'mu': np.mean(episode_losses['mu'])}
             self.losses.append(loss)
 
-            writer.add_scalar("Losses/Q", loss['q'], self.current_episode)
-            writer.add_scalar("Losses/Mu", loss['mu'], self.current_episode)
+            writer.add_scalar("Losses/Q", loss['q'], self.global_step)
+            writer.add_scalar("Losses/Mu", loss['mu'], self.global_step)
             
             # Save the rewards
             self.episodes_lengths.append(length_episode)
             self.train_rewards.append(episode_reward)
 
-            writer.add_scalar("Train/Reward", episode_reward, self.current_episode)
-            writer.add_scalar("Train/Episode Length", length_episode, self.current_episode)
+            writer.add_scalar("Train/Reward", episode_reward, self.global_step)
+            writer.add_scalar("Train/Episode Length", length_episode, self.global_step)
 
             self.current_episode += 1
 
@@ -316,15 +317,15 @@ class DDPG(BaseAlgorithm):
                 self.mean_test_rewards.append(mean)
                 self.std_test_rewards.append(std)
 
-                writer.add_scalar("Test/Mean Reward", mean, self.current_episode)
-                writer.add_scalar("Test/Std Reward", std, self.current_episode)
+                writer.add_scalar("Test/Mean Reward", mean, self.global_step)
+                writer.add_scalar("Test/Std Reward", std, self.global_step)
 
                 if self.running_average.__len__() == 0:
                     self.running_average.append(mean)
                 else:
                     self.running_average.append(0.9 * self.running_average[-1] + 0.1 * mean)
 
-                writer.add_scalar("Train/Running Reward", self.running_average[-1], self.current_episode)
+                writer.add_scalar("Train/Running Reward", self.running_average[-1], self.global_step)
 
                 if mean > self.best_test_reward:
                     self.best_test_reward = mean
