@@ -320,12 +320,13 @@ class BaseAlgorithm:
 
         pbar = tqdm(os.listdir(self.models_folder))
         for model in pbar:
-            video_path = os.path.join(self.videos_folder, model[:-4] + ".mp4")
+            video_path = os.path.join(self.videos_folder, ".".join(model.split('.')[:-1]) + ".mp4")
             if os.path.exists(video_path):
+                print(video_path)
                 continue
             self.load(os.path.join(self.models_folder, model), verbose=False)
             try:
-                self.test(save_video=True, video_path=os.path.join(self.videos_folder, ".".join(model.split('.')[:-1]) + ".mp4"))
+                self.test(save_video=True, video_path=video_path)
             except Exception as e:
                 print("Failed to save video for model {}".format(model))
                 print(e)
