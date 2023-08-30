@@ -7,12 +7,49 @@ def get_agent(obs_space, action_space, kwargs, q_table=False, ddpg_q_agent=False
     """ Global function to get an agent from its type and parameters
 
     This is the function used in the algorithms when a kwargs for an agent are given.
-    The agent_type is usually automatically inferred from the environment's observation and ction spaces.
+    The agent type (MLP, CNN...) is usually automatically inferred from the environment's observation and action spaces.
 
-    :param agent_type: type of the agent, either "mlp" or "q_table", "cnn" is not supported yet
-    :type agent_type: str
+    Example:
 
-    :return: agent
+    >>> from rlib.agents import get_agent
+    >>> import gymnasium as gym
+    >>>
+    >>> env = gym.make("CartPole-v1") 
+    >>> # This environment has a Box(4,) observation space and a Discrete(2,) action space
+    >>> # Hence the infered agent type is a MLP with `input_size=4` and `output_size=2`
+    >>> 
+    >>> agent = get_agent(env.observation_space, 
+                          env.action_space, 
+                          {'hidden_sizes': [64, 64], 'activation': 'tanh'})
+    >>> 
+    >>> print(agent)
+
+    Returns: 
+
+    >>> MLP(
+    >>>     (layers): Sequential(
+    >>>         (0): Linear(in_features=4, out_features=64, bias=True)
+    >>>         (1): ReLU()
+    >>>         (2): Linear(in_features=64, out_features=64, bias=True)
+    >>>         (3): ReLU()
+    >>>         (4): Linear(in_features=64, out_features=2, bias=True)
+    >>>     )
+    >>> )
+
+    :param obs_space: observation space of the environment
+    :param action_space: action space of the environment
+    :param kwargs: kwargs for the agent, see :py:mod:`rlib.agents` for more details.
+    :param q_table: whether to use a QTable agent
+    :param ddpg_q_agent: if True, the agent is a Q function and returns a scalar value for each state-action pair
+    :param ppo_critic: if True, the agent is a critic and returns a scalar value for each state
+    :type obs_space: gym.spaces
+    :type action_space: gym.spaces
+    :type kwargs: dict
+    :type q_table: bool
+    :type ddpg_q_agent: bool
+    :type ppo_critic: bool
+
+    :return: Either :class:`.MLP` or :class:`.QTable` depending on the parameters
     
     """
 
