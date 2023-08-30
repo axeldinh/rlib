@@ -85,7 +85,7 @@ class DDPG(BaseAlgorithm):
             save_folder="ddpg",
             q_lr=3e-4,
             mu_lr=3e-4,
-            update_lr=None,  # Function updating the learning rates
+            lr_annealing=True,
             action_noise=0.1,  # Noise added during population of the replay buffer
             target_noise=0.2,  # Noise added to target actions
             delay_policy_update=2,
@@ -122,8 +122,6 @@ class DDPG(BaseAlgorithm):
         :type q_lr: float, optional
         :param mu_lr: The learning rate for the policy agent, by default 3e-4.
         :type mu_lr: float, optional
-        :param update_lr: A function that updates the learning rates of the optimizers, given the current episode. The function should take as input the current episode and return the new learning rates as `(mu_lr, q_lr)`. By default None.
-        :type update_lr: function, optional
         :param action_noise: The noise added during population of the replay buffer, by default 0.1.
         :type action_noise: float, optional
         :param target_noise: The noise added to target actions, by default 0.2.
@@ -173,7 +171,7 @@ class DDPG(BaseAlgorithm):
         self.q_kwargs = q_kwargs
         self.q_lr = q_lr
         self.mu_lr = mu_lr
-        self.update_lr = update_lr
+        self.lr_annealing = lr_annealing
         self.discount = discount
         self.action_noise = action_noise
         self.target_noise = target_noise
@@ -290,10 +288,13 @@ class DDPG(BaseAlgorithm):
 
             # TODO : REMOVE THE LR UPDATE OR INTEGRATE IT IN THE CODE
 
-            if self.update_lr is not None:
-                self.mu_lr, self.q_lr = self.update_lr(self.current_episode)
-                self.mu_optimizer.param_groups[0]['lr'] = self.mu_lr
-                self.q_optimizer.param_groups[0]['lr'] = self.q_lr
+            if self.lr_annealing:
+
+                self.new_mu_lr = self.mu_lr * (1 - self.current_episode / (self.num_episodes-1))
+                self.new_q_lr = self.q_lr * (1 - self.current_episode / (self.num_episodes-1)) 
+                
+                self.mu_optimizer.param_groups[0]['lr'] = self.new_mu_lr
+                self.q_optimizer.param_groups[0]['lr'] = self.new_q_lr
 
             loss = {'q': np.mean(episode_losses['q']), 'mu': np.mean(episode_losses['mu'])}
             self.losses.append(loss)
