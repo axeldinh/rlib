@@ -12,7 +12,6 @@ Welcome to RLib's documentation!
 
    learning
    agents
-   wrappers
    envs
 
 
