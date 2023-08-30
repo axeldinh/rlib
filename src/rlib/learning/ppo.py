@@ -41,32 +41,21 @@ class PPOAgent(nn.Module):
             self.action_low = torch.tensor(action_space.low, dtype=torch.float32)
 
         act_kwargs = actor_kwargs.copy()
-        act_kwargs['input_size'] = np.array(state_shape).prod()
-        act_kwargs['output_size'] = np.array(action_shape).prod()
         act_kwargs['init_weights'] = 'ppo_actor'
-        act_kwargs['requires_grad'] = True
         if 'activation' not in act_kwargs:
             act_kwargs['activation'] = 'tanh'
         if 'hidden_sizes' not in act_kwargs:
             act_kwargs['hidden_sizes'] = [64, 64]
 
         crit_kwargs = critic_kwargs.copy()
-        crit_kwargs['input_size'] = np.array(state_shape).prod()
-        crit_kwargs['output_size'] = 1
         crit_kwargs['init_weights'] = 'ppo_critic'
-        crit_kwargs['requires_grad'] = True
         if 'activation' not in crit_kwargs:
             crit_kwargs['activation'] = 'tanh'
         if 'hidden_sizes' not in crit_kwargs:
             crit_kwargs['hidden_sizes'] = [64, 64]
 
-        self.actor = get_agent(
-             "mlp", **act_kwargs
-         )
- 
-        self.critic = get_agent(
-             "mlp", **crit_kwargs
-         )
+        self.actor = get_agent(self.state_space, self.action_space, act_kwargs)
+        self.critic = get_agent(self.state_space, self.action_space, crit_kwargs, ppo_critic=True)
         
         if self.continuous:
             self.actor_std = nn.Parameter(torch.ones(np.prod(action_shape).prod()))
