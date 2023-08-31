@@ -60,7 +60,6 @@ class DeepQLearning(BaseAlgorithm):
 
     .. code-block::
 
-        import gymnasium as gym
         from rlib.learning import DeepQLearning
         
         env_kwargs = {'id': 'CartPole-v1'}
@@ -99,6 +98,7 @@ class DeepQLearning(BaseAlgorithm):
             size_replay_buffer=100_000,
             max_grad_norm=10,
             normalize_observation=False,
+            stop_max_score=False,
             seed=42
             ):
         """
@@ -146,6 +146,8 @@ class DeepQLearning(BaseAlgorithm):
         :type max_grad_norm: int, optional
         :param normalize_observation: Whether to normalize the observation in `[-1, 1]`, by default False.
         :type normalize_observation: bool, optional
+        :param stop_max_score: Whether to stop the training when the maximum score is reached, by default False.
+        :type stop_max_score: bool, optional
         :param seed: The seed for the environment, by default 42.
         :type seed: int, optional
 
@@ -176,6 +178,7 @@ class DeepQLearning(BaseAlgorithm):
         self.batch_size = batch_size
         self.size_replay_buffer = size_replay_buffer
         self.max_grad_norm = max_grad_norm
+        self.stop_max_score = stop_max_score
 
         self.update_epsilon = lambda step: (self.epsilon_min - self.epsilon_start) * step / (self.num_time_steps-1) + self.epsilon_start
         self.epsilon = self.epsilon_start
@@ -310,6 +313,12 @@ class DeepQLearning(BaseAlgorithm):
                 writer.add_scalar("Train/Episode Length", length_episode, self.current_time_step)
                 length_episode = 0
                 episode_reward = 0
+
+            if len(self.mean_test_rewards) > 0:
+                if self.stop_max_score and self.mean_test_rewards[-1] >= self.max_total_reward:
+                    if self.std_test_rewards[-1] == 0.0 and self.verbose:
+                        print("Stopping training, max score {} reached.".format(self.max_total_reward))
+                        break
 
         writer.close()
 
