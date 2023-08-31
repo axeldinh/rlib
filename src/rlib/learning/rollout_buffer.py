@@ -140,7 +140,7 @@ class RolloutBuffer:
     def reset(self):
 
         self.actions = torch.zeros(self.size, self.num_envs, *self.action_shape, dtype=torch.float32)
-        self.states = torch.zeros(self.size, self.num_envs, *self.state_space[1:].shape, dtype=torch.float32)
+        self.states = torch.zeros(self.size, self.num_envs, *self.state_space.shape[1:], dtype=torch.float32)
         self.rewards = torch.zeros(self.size, self.num_envs, dtype=torch.float32)
         self.dones = torch.zeros(self.size, self.num_envs)
         self.log_probs = torch.zeros(self.size, self.num_envs, dtype=torch.float32)

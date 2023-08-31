@@ -190,7 +190,7 @@ class DeepQLearning(BaseAlgorithm):
         self.current_time_step = 0
         self.running_average = []
 
-        if not isinstance(self.action_space, Discrete) or isinstance(self.action_space, MultiDiscrete):
+        if not isinstance(self.action_space, Discrete) and not isinstance(self.action_space, MultiDiscrete):
             raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space))
         
         self.current_agent = DeepQLearningAgent(self.obs_space, self.action_space, self.agent_kwargs)
@@ -325,6 +325,7 @@ class DeepQLearning(BaseAlgorithm):
                         break
 
         writer.close()
+        env.close()
 
     def _populate_replay_buffer(self, env):
         """

@@ -141,7 +141,7 @@ class QLearning(BaseAlgorithm):
                 else:
                     action = self.current_agent.get_action(obs)
                 new_obs, reward, done, _, _ = env.step(action)
-                episode_reward += reward
+                episode_reward += reward[0]
                 episode_length += 1
 
                 q = self.current_agent.sample(obs, action)

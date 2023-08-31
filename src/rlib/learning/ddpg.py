@@ -359,6 +359,7 @@ class DDPG(BaseAlgorithm):
                 description += ", Time: [{}s/{}s]".format(current_time, total_time)
                 print(description)
 
+        env.close()
         writer.close()
                 
     def _update_target_weights(self, tau=0.01):

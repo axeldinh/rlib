@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 from gymnasium.wrappers import ClipAction, TransformObservation, NormalizeReward, TransformReward
-from gymnasium.spaces import Discrete, Box
+from gymnasium.spaces import Discrete, MultiDiscrete, Box
 
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.learning.rollout_buffer import RolloutBuffer
@@ -29,8 +29,11 @@ class PPOAgent(nn.Module):
         if isinstance(action_space, Discrete):
             action_shape = action_space.n
             self.continuous = False
+        elif isinstance(action_space, MultiDiscrete):
+            action_shape = action_space.nvec
+            self.continuous = False
         elif isinstance(action_space, Box):
-            action_shape = action_space.shape
+            action_shape = action_space.shape[1:]
             self.continuous = True
             self.action_high = torch.tensor(action_space.high, dtype=torch.float32)
             self.action_low = torch.tensor(action_space.low, dtype=torch.float32)

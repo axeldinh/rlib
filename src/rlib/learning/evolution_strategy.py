@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from gymnasium.spaces import Discrete
+from gymnasium.spaces import Discrete, MultiDiscrete
 
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.utils import play_episode
@@ -22,7 +22,7 @@ class EvolutionStrategyAgent(torch.nn.Module):
         self.action_space = action_space
         self.agent_kwargs = agent_kwargs
 
-        self.discrete_action = isinstance(action_space, Discrete)
+        self.discrete_action = isinstance(action_space, Discrete) or isinstance(action_space, MultiDiscrete)
 
         self.agent = get_agent(obs_space, action_space, agent_kwargs)
 
@@ -34,14 +34,19 @@ class EvolutionStrategyAgent(torch.nn.Module):
         return self.agent(x)
     
     def get_action(self, x):
+        
         is_numpy = isinstance(x, np.ndarray)
         if is_numpy:
             x = torch.from_numpy(x).to(torch.float32)
         output = self.forward(x)
+
         if self.discrete_action:
-            return output.argmax().item()
-        else:
-            return output.detach().numpy()
+            action = output.argmax(dim=-1)
+
+        if is_numpy:
+            action = action.detach().numpy()
+
+        return action
         
     def get_params(self):
         return self.agent.state_dict()
