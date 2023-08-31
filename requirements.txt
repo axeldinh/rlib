@@ -5,3 +5,4 @@ gymnasium[other]>=0.28.0
 torch>=2.0.0
 tqdm
 matplotlib
+tensorboard>=2.13.0
