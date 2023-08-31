@@ -117,7 +117,7 @@ class QLearning(BaseAlgorithm):
 
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
 
-        env = self.make_env().envs[0]
+        env = self.make_env()
 
         if self.verbose:
             pbar = trange(self.num_iterations)

@@ -1,7 +1,7 @@
 from rlib.agents.q_table import QTable
 from rlib.agents.mlp import MLP
 
-from gymnasium.spaces import Discrete, Box
+from gymnasium.spaces import Discrete, MultiDiscrete, Box
 
 def get_agent(obs_space, action_space, kwargs, q_table=False, ddpg_q_agent=False, ppo_critic=False):
     """ Global function to get an agent from its type and parameters
@@ -58,27 +58,29 @@ def get_agent(obs_space, action_space, kwargs, q_table=False, ddpg_q_agent=False
 
     if isinstance(action_space, Discrete):
         output_dim = action_space.n
+    elif isinstance(action_space, MultiDiscrete):
+        output_dim = action_space.nvec[0]
     elif isinstance(action_space, Box):
-        n_dims = len(action_space.shape)
+        n_dims = len(action_space.shape[1:])
         if n_dims != 1:
             raise ValueError("The action space should have 1 dimension.")
-        output_dim = action_space.shape[0]
+        output_dim = action_space.shape[1:][0]
     else:
         raise ValueError(f"Unknown action space {action_space}.")
 
     if isinstance(obs_space, Discrete):
         raise NotImplementedError("Discrete observation spaces are not supported yet. Consider using a QTable instead.")
     elif isinstance(obs_space, Box):
-        n_dims = len(obs_space.shape)
+        n_dims = len(obs_space.shape[1:])
         if n_dims == 1:
             if ddpg_q_agent:
-                kwargs["input_size"] = obs_space.shape[0] + output_dim
+                kwargs["input_size"] = obs_space.shape[1:][0] + output_dim
                 kwargs["output_size"] = 1
             elif ppo_critic:
-                kwargs["input_size"] = obs_space.shape[0]
+                kwargs["input_size"] = obs_space.shape[1:][0]
                 kwargs["output_size"] = 1
             else:
-                kwargs["input_size"] = obs_space.shape[0]
+                kwargs["input_size"] = obs_space.shape[1:][0]
                 kwargs["output_size"] = output_dim
             agent_type = "mlp"
         elif n_dims == 2:

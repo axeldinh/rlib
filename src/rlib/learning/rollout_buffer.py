@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+from gymnasium.spaces import Discrete, MultiDiscrete, Box
+
 class RolloutBuffer:
 
     def __init__(self, size, num_envs, state_space, action_space, batch_size, discount, use_gae, lambda_gae=None):
@@ -12,6 +14,11 @@ class RolloutBuffer:
         self.batch_size = batch_size
         self.use_gae = use_gae
         self.discount=discount
+
+        if isinstance(action_space, Discrete) or isinstance(action_space, MultiDiscrete):
+            self.action_shape = ()
+        elif isinstance(action_space, Box):
+            self.action_shape = action_space.shape[1:]
 
         assert size % batch_size == 0, "The batch size should divide the size of the buffer."
 
@@ -107,8 +114,8 @@ class RolloutBuffer:
 
         permuted_indices = np.random.permutation(np.arange(self.size))
 
-        self.actions = self.actions.reshape((-1,) + self.action_space.shape)
-        self.states = self.states.reshape((-1,) + self.state_space.shape)
+        self.actions = self.actions.reshape((-1,) + self.action_shape)
+        self.states = self.states.reshape((-1,) + self.state_space.shape[1:])
         self.log_probs = self.log_probs.reshape(-1)
         self.advantages = self.advantages.reshape(-1)
         self.returns = self.returns.reshape(-1)
@@ -132,8 +139,8 @@ class RolloutBuffer:
 
     def reset(self):
 
-        self.actions = torch.zeros(self.size, self.num_envs, *self.action_space.shape, dtype=torch.float32)
-        self.states = torch.zeros(self.size, self.num_envs, *self.state_space.shape, dtype=torch.float32)
+        self.actions = torch.zeros(self.size, self.num_envs, *self.action_shape, dtype=torch.float32)
+        self.states = torch.zeros(self.size, self.num_envs, *self.state_space[1:].shape, dtype=torch.float32)
         self.rewards = torch.zeros(self.size, self.num_envs, dtype=torch.float32)
         self.dones = torch.zeros(self.size, self.num_envs)
         self.log_probs = torch.zeros(self.size, self.num_envs, dtype=torch.float32)

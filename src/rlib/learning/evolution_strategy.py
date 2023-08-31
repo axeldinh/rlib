@@ -267,7 +267,7 @@ class EvolutionStrategy(BaseAlgorithm):
 
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
 
-        env = self.make_env().envs[0]
+        env = self.make_env()
         
         params_agent = self.current_agent.get_params()
         agent = self.agent_fn()

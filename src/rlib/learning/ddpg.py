@@ -242,7 +242,7 @@ class DDPG(BaseAlgorithm):
 
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
 
-        env = self.make_env().envs[0]
+        env = self.make_env()
 
         self._populate_replay_buffer(env)
 

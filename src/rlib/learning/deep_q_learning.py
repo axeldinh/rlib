@@ -7,7 +7,7 @@ import torch
 import torch.nn .functional as F
 from torch.utils.tensorboard import SummaryWriter
 
-from gymnasium.spaces import Discrete
+from gymnasium.spaces import Discrete, MultiDiscrete
 
 from rlib.learning.base_algorithm import BaseAlgorithm
 from rlib.agents import get_agent
@@ -190,7 +190,7 @@ class DeepQLearning(BaseAlgorithm):
         self.current_time_step = 0
         self.running_average = []
 
-        if not isinstance(self.action_space, Discrete):
+        if not isinstance(self.action_space, Discrete) or isinstance(self.action_space, MultiDiscrete):
             raise ValueError("The action space must be discrete. Current action space: {}".format(self.action_space))
         
         self.current_agent = DeepQLearningAgent(self.obs_space, self.action_space, self.agent_kwargs)
@@ -218,7 +218,7 @@ class DeepQLearning(BaseAlgorithm):
 
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
         
-        env = self.make_env().envs[0]
+        env = self.make_env()
 
         self._populate_replay_buffer(env)  # Populate the replay buffer with random samples
 

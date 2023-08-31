@@ -98,7 +98,7 @@ class BaseAlgorithm:
         random.seed(self.seed)
         
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
-        env = self.make_env().envs[0]
+        env = self.make_env()
         self.action_space = env.action_space
         self.obs_space = env.observation_space
         del env
@@ -293,8 +293,6 @@ class BaseAlgorithm:
             env = self.make_env(render_mode="rgb_array", num_envs=1)
         else:
             env = self.make_env(render_mode=None, num_envs=1)
-
-        env = env.envs[0]
 
         seed = np.random.randint(0, np.iinfo(np.int32).max)
         env.reset(seed=seed)  # Random seed to avoid overfitting to the same initial state
