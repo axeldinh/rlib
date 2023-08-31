@@ -95,7 +95,7 @@ class DDPG(BaseAlgorithm):
             learning_starts=50_000,  # Number of random samples in the replay buffer before training
             target_update_tau=0.01,  # Percentage of weights to copy from the main model to the target model
             verbose=True,
-            test_every=50_000,
+            test_every=10,
             num_test_episodes=10,
             batch_size=64,
             size_replay_buffer=100_000,

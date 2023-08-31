@@ -86,6 +86,7 @@ class DeepQLearning(BaseAlgorithm):
             discount=0.99,
             epsilon_start=0.1,
             epsilon_min=0.01,
+            exploration_fraction=0.1,
             num_time_steps=100_000,
             learning_starts=50_000,
             update_every=4,
@@ -122,6 +123,8 @@ class DeepQLearning(BaseAlgorithm):
         :type epsilon_start: float, optional
         :param epsilon_min: The minimum value of epsilon greedy, by default 0.01.
         :type epsilon_min: float, optional
+        :param exploration_fraction: The fraction of the training time during which the epsilon is decreased, if 0.1 :param:`epsilon_min` will be reached after 10% of training time, by default 0.1.
+        :type exploration_fraction: float, optional
         :param num_time_steps: The number of time steps to train the agent, by default 100_000.
         :type num_time_steps: int, optional
         :param learning_starts: The number of time steps before starting to train the agent, by default 50_000.
@@ -167,6 +170,7 @@ class DeepQLearning(BaseAlgorithm):
         self.discount = discount
         self.epsilon_start = epsilon_start
         self.epsilon_min = epsilon_min
+        self.exploration_fraction = exploration_fraction
         self.num_time_steps = num_time_steps
         self.learning_starts = max(learning_starts, batch_size)
         self.update_every = update_every
@@ -180,7 +184,7 @@ class DeepQLearning(BaseAlgorithm):
         self.max_grad_norm = max_grad_norm
         self.stop_max_score = stop_max_score
 
-        self.update_epsilon = lambda step: (self.epsilon_min - self.epsilon_start) * step / (self.num_time_steps-1) + self.epsilon_start
+        self.update_epsilon = lambda step: (self.epsilon_min - self.epsilon_start) * step / ((self.num_time_steps-1) * self.exploration_fraction) + self.epsilon_start
         self.epsilon = self.epsilon_start
 
         self.current_time_step = 0
