@@ -514,7 +514,6 @@ class DDPG(BaseAlgorithm):
             "mean_test_rewards": self.mean_test_rewards,
             "std_test_rewards": self.std_test_rewards,
             "episodes_lengths": self.episodes_lengths,
-            "replay_buffer": self.replay_buffer,
             "running_average": self.running_average,
             "best_iteration": self.best_iteration,
             "best_test_reward": self.best_test_reward,
