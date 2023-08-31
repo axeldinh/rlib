@@ -334,6 +334,9 @@ class DDPG(BaseAlgorithm):
                 
                 self.save(self.models_folder + f"/iter_{self.current_episode}.pkl")
 
+            run_time = time.time() - start
+            times.append(run_time)
+
             if self.verbose and test_progress:
                 description = f"Episode [{self.current_episode}/{self.num_episodes}]"
                 description += ", Test Reward: {:.2f} (+/- {:.2f})".format(self.mean_test_rewards[-1], self.std_test_rewards[-1])
@@ -344,9 +347,6 @@ class DDPG(BaseAlgorithm):
                 current_time = str(timedelta(seconds=int(current_time)))
                 description += ", Time: [{}s/{}s]".format(current_time, total_time)
                 print(description)
-
-            run_time = time.time() - start
-            times.append(run_time)
 
         writer.close()
                 
