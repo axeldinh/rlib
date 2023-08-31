@@ -164,7 +164,7 @@ class BaseAlgorithm:
 
         abs_path_git_directory = os.path.abspath(__file__)
         # Stop at src in case someone cloned the repo with a different name
-        while abs_path_git_directory.split("/")[-1] != "src":
+        while os.path.basename(os.path.normpath(abs_path_git_directory)) != "src":
             abs_path_git_directory = os.path.dirname(abs_path_git_directory)
         abs_path_git_directory = os.path.dirname(abs_path_git_directory)
 
