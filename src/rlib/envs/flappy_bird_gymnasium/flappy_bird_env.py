@@ -83,7 +83,7 @@ class FlappyBirdEnv(Env):
     .. code-block:: python
 
         import gymnasium
-        import rlib
+        from rlib.envs import FlappyBird
 
         env = gymnasium.make("FlappyBird-v0", gap=125, observation_mode="simple", debug=False)
     """
