@@ -101,6 +101,7 @@ class DDPG(BaseAlgorithm):
             size_replay_buffer=100_000,
             max_grad_norm=10,
             normalize_observation=False,
+            envs_wrappers=[],
             seed=42
             ):
         """
@@ -152,6 +153,8 @@ class DDPG(BaseAlgorithm):
         :type max_grad_norm: int, optional
         :param normalize_observation: Whether to normalize the observations, by default False.
         :type normalize_observation: bool, optional
+        :param envs_wrappers: The wrappers to use on the environment, by default [].
+        :type envs_wrappers: list, optional
         :param seed: The seed for the random number generator, by default 42.
         :type seed: int, optional
         :raises ValueError: If the action space is not continuous.
@@ -165,7 +168,8 @@ class DDPG(BaseAlgorithm):
                         
         super().__init__(env_kwargs=env_kwargs, num_envs=1, 
                          max_episode_length=max_episode_length, max_total_reward=max_total_reward, 
-                         save_folder=save_folder, normalize_observation=normalize_observation, seed=seed)
+                         save_folder=save_folder, normalize_observation=normalize_observation, seed=seed,
+                         envs_wrappers=envs_wrappers)
 
         self.mu_kwargs = mu_kwargs
         self.q_kwargs = q_kwargs

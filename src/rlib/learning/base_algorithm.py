@@ -98,9 +98,9 @@ class BaseAlgorithm:
         random.seed(self.seed)
         
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
-        env = self.make_env()
-        self.action_space = env.single_action_space
-        self.obs_space = env.single_observation_space
+        env = self.make_env().envs[0]
+        self.action_space = env.action_space
+        self.obs_space = env.observation_space
         del env
 
         self.save_folder = save_folder
