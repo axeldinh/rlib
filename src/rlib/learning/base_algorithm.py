@@ -208,7 +208,6 @@ class BaseAlgorithm:
         writer.add_text("RLib Git info", git_infos)
         writer.close()
         
-
     def save_hyperparameters(self):
         """ Saves the hyperparameters of the algorithm.
         """
@@ -270,7 +269,7 @@ class BaseAlgorithm:
         """
         raise NotImplementedError
     
-    def test(self, num_episodes=1, display=False, save_video=False, video_path=None):
+    def test(self, num_episodes=1, display=False, save_video=False, video_path=None, seed=None):
         """ Test the current agent on the environment.
 
         :param num_episodes: The number of episodes to test the agent on, by default 1.
@@ -293,15 +292,17 @@ class BaseAlgorithm:
         if display and save_video:
             raise ValueError("display and save_video cannot be True at the same time")
         
-        if display:
-            env = self.make_env(render_mode="human", num_envs=1, sync=False, track_statistics=False)
-        elif save_video:
-            env = self.make_env(render_mode="rgb_array", num_envs=1, sync=False, track_statistics=False)
-        else:
-            env = self.make_env(render_mode=None, num_envs=1, sync=False, track_statistics=False)
+        if seed is None:
+            seed = np.random.randint(0, np.iinfo(np.int32).max)  # Random seed to avoid overfitting to the same initial state
 
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
-        env.reset(seed=seed)  # Random seed to avoid overfitting to the same initial state
+        env_kwargs = {"num_envs": 1, "sync": False, "track_statistics": False, "seed": seed}
+        if display:
+            env = self.make_env(render_mode="human", **env_kwargs)
+        elif save_video:
+            env = self.make_env(render_mode="rgb_array", **env_kwargs)
+        else:
+            env = self.make_env(render_mode=None, **env_kwargs)
+
         rewards = []
 
         for _ in range(num_episodes):
@@ -324,20 +325,33 @@ class BaseAlgorithm:
 
         # Random number to avoid overwriting when multiple instances are running
         key = np.random.randint(0, 1000000)
+
         # Saving the current agent
         self.save(f".tmp{key}.pkl")
 
         print("Saving videos from previous iterations...")
 
-        pbar = tqdm(os.listdir(self.models_folder))
-        for model in pbar:
+        models_names = os.listdir(self.models_folder)
+
+        seeds = [np.random.randint(0, np.iinfo(np.int32).max) for _ in range(len(models_names))]
+
+        pbar = tqdm(models_names)
+        for i, model in enumerate(pbar):
             video_path = os.path.join(self.videos_folder, ".".join(model.split('.')[:-1]) + ".mp4")
             if os.path.exists(video_path):
                 print(video_path)
                 continue
             self.load(os.path.join(self.models_folder, model), verbose=False)
+
+            # Random seed to be sure we do not repeat the same states
+            # Note that when loading the model, the seed is reset to the one used during training
+            # So we need to seed everything again
+            np.random.seed(seeds[i])
+            torch.manual_seed(seeds[i])
+            random.seed(seeds[i])
+
             try:
-                self.test(save_video=True, video_path=video_path)
+                self.test(save_video=True, video_path=video_path)#, seed=seeds[i])
             except Exception as e:
                 print("Failed to save video for model {}".format(model))
                 print(e)
