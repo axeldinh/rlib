@@ -21,16 +21,17 @@ All the algorithms are implemented as classes, which can be used as follows:
 
 .. code-block:: python
 
-    import gymnasium
     from learning import Algorithm
     from agents import Agent
 
-    env_fn = lambda render_mode=None: gymnasium.make('CartPole-v0', render_mode=render_mode, **kwargs)
-    agent_fn = lambda params=None Agent(params=params, **kwargs)
-    algorithm = Algorithm(env, agent, **kwargs)
+    env_kwargs = {'id': 'CartPole-v1'}
+    agent_kwargs = {'hidden_sizes': [64, 64]}
+    algorithm = Algorithm(env_kwargs, agent_kwargs)
 
     algorithm.train()
-    algorithm.test()
+    mean, std = algorithm.test()
+    algorithm.save_plots()
+    algorithm.save_videos()
 
 ----------------
 
@@ -38,18 +39,24 @@ BaseAlgorithm
 -------------
 
 The :class:`learning.base_algorithm.BaseAlgorithm` class gives the baselines for an algorithm to be useable
-by our implementations:
+by our implementations.
+
+For an algorithm to be useable, it must implement the following methods:
+
+    * :meth:`learning.base_algorithm.BaseAlgorithm.train_`
+    * :meth:`learning.base_algorithm.BaseAlgorithm.save`
+    * :meth:`learning.base_algorithm.BaseAlgorithm.load`
 
 .. autoclass:: learning.base_algorithm.BaseAlgorithm
 
     .. automethod:: learning.base_algorithm.BaseAlgorithm.__init__
     .. automethod:: learning.base_algorithm.BaseAlgorithm.train
+    .. automethod:: learning.base_algorithm.BaseAlgorithm.train_
     .. automethod:: learning.base_algorithm.BaseAlgorithm.test
     .. automethod:: learning.base_algorithm.BaseAlgorithm.save
     .. automethod:: learning.base_algorithm.BaseAlgorithm.load
     .. automethod:: learning.base_algorithm.BaseAlgorithm.save_plots
     .. automethod:: learning.base_algorithm.BaseAlgorithm.save_videos
-    .. automethod:: learning.base_algorithm.BaseAlgorithm.load_model_parameters
 
 
 EvolutionStrategy

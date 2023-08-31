@@ -73,11 +73,8 @@ class EvolutionStrategy(BaseAlgorithm):
 
     .. code-block:: python
 
-        import gymnasium as gym
         from rlib.learning import EvolutionStrategy
                     
-        agent_fn = Agent
-
         env_kwargs = {'id': 'CartPole-v0'}
         agent_kwargs = {'hidden_sizes': [32, 32]}
 
@@ -103,7 +100,7 @@ class EvolutionStrategy(BaseAlgorithm):
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_kwargs: Kwargs used to call `rlib.agents.get_agent(**agent_kwargs)`, some parameters are automatically infered (inputs sizes, MLP or CNN, ...).
+        :param agent_kwargs: Kwargs used to call :py:meth:`get_agent(kwargs=agent_kwargs)<rlib.agents.get_agent>`, some parameters are automatically infered (inputs sizes, MLP or CNN, ...).
         :type agent_kwargs: dict
         :param num_agents: The number of agents to use to compute the gradient, by default 30
         :type num_agents: int, optional

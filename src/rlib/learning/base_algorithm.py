@@ -30,6 +30,8 @@ class BaseAlgorithm:
 
     :ivar env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
     :vartype env_kwargs: dict
+    :ivar num_envs: The number of environments to use for training.
+    :vartype num_envs: int
     :ivar max_episode_length: Maximum number of steps taken to complete an episode.
     :vartype max_episode_length: int
     :ivar max_total_reward: Maximum reward achievable in one episode
@@ -47,6 +49,8 @@ class BaseAlgorithm:
     :vartype env_kwargs: dict
     :ivar normalize_observation: Whether to normalize the observation in `[-1, 1]`
     :vartype normalize_observation: bool
+    :ivar envs_wrappers: The wrappers to use for the environment, by default None.
+    :vartype envs_wrappers: list, optional
 
     """
 
@@ -76,6 +80,8 @@ class BaseAlgorithm:
         :type normalize_observation: bool, optional
         :param seed: The seed to use for the environment.
         :type seed: int
+        :param envs_wrappers: The wrappers to use for the environment, by default None.
+        :type envs_wrappers: list, optional
 
         """
 
@@ -215,11 +221,15 @@ class BaseAlgorithm:
     def train_(self) -> None:
         """
         Train the agent on the environment.
+
+        This method should be implemented in the child class.
         """
         raise NotImplementedError
     
     def train(self):
-        """ Default training method, with a sanity on the creation of the folders.
+        """ Default training method.
+
+        Along with the training, it creates the folders for saving the results, saves the hyperparameters and the git info.
         """
         self._create_folders()
         self.save_hyperparameters()
@@ -239,9 +249,6 @@ class BaseAlgorithm:
     @abstractclassmethod
     def load(self, path):
         """ Load the agent from the given path. 
-        
-        Note that only the agent is loaded, not the environment, 
-        nor the training parameters.
 
         :param path: The path to load the agent from.
         :type path: str
@@ -336,14 +343,3 @@ class BaseAlgorithm:
 
         self.load(f".tmp{key}.pkl", verbose=False)
         os.remove(f".tmp{key}.pkl")
-
-    @abstractclassmethod
-    def load_model_parameters(self, data):
-        """ Load the model parameters from the given data.
-
-        :param data: The data to load the model parameters from should be the data contained in the file saved when :func:`save` is used.
-        :type data: dict
-
-        """
-        raise NotImplementedError
-    
