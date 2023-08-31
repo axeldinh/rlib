@@ -116,7 +116,7 @@ class BaseAlgorithm:
 
         self.current_agent = None
     
-    def make_env(self, render_mode=None, num_envs=None, seed=None, sync=True):
+    def make_env(self, render_mode=None, num_envs=None, seed=None, sync=True, track_statistics=True):
         """ Returns an instance of the environment, with the desired render mode.
         :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
         :type render_mode: str, optional
@@ -142,7 +142,8 @@ class BaseAlgorithm:
             env.reset(seed=self.seed)
 
         # Keep track of statistics
-        env = gym.wrappers.RecordEpisodeStatistics(env)
+        if track_statistics:
+            env = gym.wrappers.RecordEpisodeStatistics(env)
 
         if self.normalize_observation:
             env = gym.wrappers.NormalizeObservation(env)
@@ -293,11 +294,11 @@ class BaseAlgorithm:
             raise ValueError("display and save_video cannot be True at the same time")
         
         if display:
-            env = self.make_env(render_mode="human", num_envs=1, sync=False)
+            env = self.make_env(render_mode="human", num_envs=1, sync=False, track_statistics=False)
         elif save_video:
-            env = self.make_env(render_mode="rgb_array", num_envs=1, sync=False)
+            env = self.make_env(render_mode="rgb_array", num_envs=1, sync=False, track_statistics=False)
         else:
-            env = self.make_env(render_mode=None, num_envs=1, sync=False)
+            env = self.make_env(render_mode=None, num_envs=1, sync=False, track_statistics=False)
 
         seed = np.random.randint(0, np.iinfo(np.int32).max)
         env.reset(seed=seed)  # Random seed to avoid overfitting to the same initial state
