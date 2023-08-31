@@ -89,6 +89,7 @@ class DDPG(BaseAlgorithm):
             lr_annealing=True,
             action_noise=0.1,  # Noise added during population of the replay buffer
             target_noise=0.2,  # Noise added to target actions
+            num_updates_per_iter=10,
             delay_policy_update=2,
             twin_q=True,
             discount=0.99,
@@ -128,6 +129,8 @@ class DDPG(BaseAlgorithm):
         :type action_noise: float, optional
         :param target_noise: The noise added to target actions, by default 0.2.
         :type target_noise: float, optional
+        :param num_updates_per_iter: The number of updates per iteration, by default 10.
+        :type num_updates_per_iter: int, optional
         :param delay_policy_update: The number of Q-function updates before updating the policy, by default 2.
         :type delay_policy_update: int, optional
         :param twin_q: Whether to use two Q-functions, by default True.
@@ -186,6 +189,7 @@ class DDPG(BaseAlgorithm):
         self.discount = discount
         self.action_noise = action_noise
         self.target_noise = target_noise
+        self.num_updates_per_iter = num_updates_per_iter
         self.delay_policy_update = delay_policy_update
         self.twin_q = twin_q
         self.num_episodes = num_episodes
@@ -294,7 +298,8 @@ class DDPG(BaseAlgorithm):
             self.global_step += length_episode
 
             episode_losses = {'q': [], 'mu': []}
-            for _ in range(length_episode):
+            #for _ in range(length_episode):
+            for _ in range(self.num_updates_per_iter):
                 # When the episode is done, we update the weights
                 loss = self.update_weights()
                 episode_losses['q'].append(loss['q'])
