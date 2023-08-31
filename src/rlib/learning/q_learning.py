@@ -117,7 +117,7 @@ class QLearning(BaseAlgorithm):
 
         writer = SummaryWriter(os.path.join(self.save_folder, "logs"))
 
-        env = self.make_env()
+        env = self.make_env(num_envs=1, sync=False)
 
         if self.verbose:
             pbar = trange(self.num_iterations)
@@ -141,7 +141,7 @@ class QLearning(BaseAlgorithm):
                 else:
                     action = self.current_agent.get_action(obs)
                 new_obs, reward, done, _, _ = env.step(action)
-                episode_reward += reward[0]
+                episode_reward += reward
                 episode_length += 1
 
                 q = self.current_agent.sample(obs, action)

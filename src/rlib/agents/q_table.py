@@ -153,8 +153,6 @@ class QTable:
         
         """
         action = np.argmax(self.sample(state), axis=-1)
-        if not isinstance(action, np.ndarray):
-            action = np.array([action])
         return action
     
     def discretize(self, state):
@@ -167,7 +165,6 @@ class QTable:
         :rtype: tuple
         
         """
-        state = state[0]
         if self.observation_type == "discrete":
             return np.array(state, dtype=int)
         discretized_state = tuple(((state - self.min_values) / self.diff * (self.grid_size-1)).astype(int))

@@ -116,7 +116,7 @@ class BaseAlgorithm:
 
         self.current_agent = None
     
-    def make_env(self, render_mode=None, num_envs=None, seed=None):
+    def make_env(self, render_mode=None, num_envs=None, seed=None, sync=True):
         """ Returns an instance of the environment, with the desired render mode.
         :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
         :type render_mode: str, optional
@@ -127,9 +127,14 @@ class BaseAlgorithm:
         if num_envs is None:
             num_envs = self.num_envs
 
-        env = gym.vector.SyncVectorEnv(
-            [lambda: gym.make(**self.env_kwargs, render_mode=render_mode)] * num_envs
-        )
+        if sync:
+            env = gym.vector.SyncVectorEnv(
+                [lambda: gym.make(**self.env_kwargs, render_mode=render_mode)] * num_envs
+            )
+        elif num_envs > 1:
+            raise NotImplementedError("Async vector envs are not implemented yet")
+        else:
+            env = gym.make(**self.env_kwargs, render_mode=render_mode)
 
         if seed is not None:
             env.reset(seed=seed)
@@ -288,11 +293,11 @@ class BaseAlgorithm:
             raise ValueError("display and save_video cannot be True at the same time")
         
         if display:
-            env = self.make_env(render_mode="human", num_envs=1)
+            env = self.make_env(render_mode="human", num_envs=1, sync=False)
         elif save_video:
-            env = self.make_env(render_mode="rgb_array", num_envs=1)
+            env = self.make_env(render_mode="rgb_array", num_envs=1, sync=False)
         else:
-            env = self.make_env(render_mode=None, num_envs=1)
+            env = self.make_env(render_mode=None, num_envs=1, sync=False)
 
         seed = np.random.randint(0, np.iinfo(np.int32).max)
         env.reset(seed=seed)  # Random seed to avoid overfitting to the same initial state
