@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 from gymnasium.spaces import Box
+from gymnasium.wrappers import ClipAction, TransformObservation, NormalizeReward, TransformReward
 
 from rlib.agents import get_agent
 from .base_algorithm import BaseAlgorithm
@@ -101,7 +102,7 @@ class DDPG(BaseAlgorithm):
             size_replay_buffer=100_000,
             max_grad_norm=10,
             normalize_observation=False,
-            envs_wrappers=[],
+            use_norm_wrappers=True,
             seed=42
             ):
         """
@@ -153,8 +154,8 @@ class DDPG(BaseAlgorithm):
         :type max_grad_norm: int, optional
         :param normalize_observation: Whether to normalize the observations, by default False.
         :type normalize_observation: bool, optional
-        :param envs_wrappers: The wrappers to use on the environment, by default [].
-        :type envs_wrappers: list, optional
+        :param use_norm_wrappers: Whether to use the ClipAction, NormalizeReward and clip the observations and rewards to `[-10, 10]`. This is useful for the MuJoCo environments, by default True.
+        :type use_norm_wrappers: bool, optional
         :param seed: The seed for the random number generator, by default 42.
         :type seed: int, optional
         :raises ValueError: If the action space is not continuous.
@@ -165,6 +166,12 @@ class DDPG(BaseAlgorithm):
         self.kwargs = locals()
         self.kwargs.pop("self")
         self.kwargs.pop("__class__")
+
+        if use_norm_wrappers:
+            envs_wrappers = [
+                ClipAction, lambda env: TransformObservation(env, lambda obs: np.clip(obs, -10, 10)),
+                NormalizeReward, lambda env: TransformReward(env, lambda rew: np.clip(rew, -10, 10))
+            ]
                         
         super().__init__(env_kwargs=env_kwargs, num_envs=1, 
                          max_episode_length=max_episode_length, max_total_reward=max_total_reward, 
