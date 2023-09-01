@@ -257,7 +257,7 @@ class BaseAlgorithm:
         self.save_hyperparameters()
         self.save_git_info()
         #  Save the initialized model
-        self.save(os.path.join(self.models_folder, "iter_0.pkl"))
+        self.save(os.path.join(self.models_folder, "iter_0.pt"))
         self.train_()
 
     @abstractclassmethod
