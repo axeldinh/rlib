@@ -101,6 +101,7 @@ class BaseAlgorithm:
         env = self.make_env()
         self.action_space = env.action_space
         self.obs_space = env.observation_space
+        self.continuous_actions = isinstance(self.action_space, gym.spaces.Box)
         del env
 
         self.save_folder = save_folder
@@ -155,6 +156,9 @@ class BaseAlgorithm:
 
         if self.normalize_observation:
             env = gym.wrappers.NormalizeObservation(env)
+
+        if self.continuous_actions:
+            env = gym.wrappers.ClipAction(env)
 
         if self.envs_wrappers is not None:
             for wrapper in self.envs_wrappers:

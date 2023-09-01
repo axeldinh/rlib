@@ -634,12 +634,3 @@ class DDPG(BaseAlgorithm):
         self.target_agent.load_state_dict(data['model_parameters']['target_agent'])
         self.mu_optimizer.load_state_dict(data['model_parameters']['mu_optimizer'])
         self.q_optimizer.load_state_dict(data['model_parameters']['q_optimizer'])
-
-if __name__ == "__main__":
-
-    import gymnasium as gym
-    env = gym.make("CartPole-v1")
-    env = NormalizeReward(env)
-    env = TransformReward(env, lambda rew: np.clip(rew, -10, 10))
-
-    print(env)
