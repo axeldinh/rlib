@@ -98,6 +98,7 @@ class BaseAlgorithm:
         random.seed(self.seed)
         
         # Determine the actions and observations spaces, useful to know if MLPs or CNNs should be used
+        self.continuous_actions = False  # Start at False and change it if the action space is continuous
         env = self.make_env()
         self.action_space = env.action_space
         self.obs_space = env.observation_space
