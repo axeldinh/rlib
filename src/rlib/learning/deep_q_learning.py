@@ -290,9 +290,9 @@ class DeepQLearning(BaseAlgorithm):
                 if mean > self.best_test_reward:
                     self.best_test_reward = mean
                     self.best_iteration = self.current_time_step
-                    self.save(self.models_folder + "/best.pkl")
+                    self.save(self.models_folder + "/best.pt")
 
-                self.save(self.models_folder + f"/iter_{self.current_time_step}.pkl")
+                self.save(self.models_folder + f"/iter_{self.current_time_step}.pt")
 
             if self.verbose and test_progress:
                 description = f"TimeStep: [{self.current_time_step}/{self.num_time_steps}]"

@@ -256,6 +256,8 @@ class BaseAlgorithm:
         self._create_folders()
         self.save_hyperparameters()
         self.save_git_info()
+        #  Save the initialized model
+        self.save(os.path.join(self.models_folder, "iter_0.pkl"))
         self.train_()
 
     @abstractclassmethod
@@ -344,7 +346,7 @@ class BaseAlgorithm:
         key = np.random.randint(0, 1000000)
 
         # Saving the current agent
-        self.save(f".tmp{key}.pkl")
+        self.save(f".tmp{key}.pt")
 
         print("Saving videos from previous iterations...")
 
@@ -376,8 +378,8 @@ class BaseAlgorithm:
         
         print("Videos saved in {}".format(self.videos_folder))
 
-        self.load(f".tmp{key}.pkl", verbose=False)
-        os.remove(f".tmp{key}.pkl")
+        self.load(f".tmp{key}.pt", verbose=False)
+        os.remove(f".tmp{key}.pt")
 
 
 if __name__ == "__main__":

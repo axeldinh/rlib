@@ -331,7 +331,7 @@ class PPO(BaseAlgorithm):
 
                 print(f"Step [{self.global_step}/{self.total_timesteps}]: Reward = {mean:.2f} (+-{std:.2f})")
 
-                self.save(os.path.join(self.models_folder, f"model_iter_{self.global_step}.pt"))
+                self.save(os.path.join(self.models_folder, f"iter_{self.global_step}.pt"))
 
                 self.next_test += self.test_every
 

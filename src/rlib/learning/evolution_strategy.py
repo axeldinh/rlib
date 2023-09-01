@@ -330,7 +330,7 @@ class EvolutionStrategy(BaseAlgorithm):
                 self.std_test_rewards.append(std_test_r)
                 writer.add_scalar("Test/Mean Reward", mean_test_r, self.global_step)
                 writer.add_scalar("Test/Std Reward", std_test_r, self.global_step)
-                model_saving_path = os.path.join(self.models_folder, f"iteration_{self.current_iteration}.pkl")
+                model_saving_path = os.path.join(self.models_folder, f"iter_{self.current_iteration}.pt")
                 self.save(model_saving_path)
 
             if self.verbose:

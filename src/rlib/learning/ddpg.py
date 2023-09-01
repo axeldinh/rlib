@@ -348,9 +348,9 @@ class DDPG(BaseAlgorithm):
                 if mean > self.best_test_reward:
                     self.best_test_reward = mean
                     self.best_iteration = self.current_episode
-                    self.save(self.models_folder + "/best.pkl")
+                    self.save(self.models_folder + "/best.pt")
                 
-                self.save(self.models_folder + f"/iter_{self.current_episode}.pkl")
+                self.save(self.models_folder + f"/iter_{self.current_episode}.pt")
 
             run_time = time.time() - start
             times.append(run_time)
