@@ -116,12 +116,20 @@ class BaseAlgorithm:
 
         self.current_agent = None
     
-    def make_env(self, render_mode=None, num_envs=None, seed=None, sync=True, track_statistics=True):
+    def make_env(self, render_mode=None, num_envs=None, seed=None, sync=True, track_statistics=True, transform_reward=True):
         """ Returns an instance of the environment, with the desired render mode.
         :param render_mode: The render mode to use, either `None`, "human" or "rgb_array", by default None.
         :type render_mode: str, optional
         :param num_envs: The number of environments to use for training, by default None (uses `self.num_envs`).
         :type num_envs: int, optional
+        :param seed: The seed to use for the environment, by default None (uses `self.seed`).
+        :type seed: int, optional
+        :param sync: Whether to use a synchronous vector env, by default True. If False, num_envs should be 1.
+        :type sync: bool, optional
+        :param track_statistics: Whether to track the statistics of the episode, by default True.
+        :type track_statistics: bool, optional
+        :param transform_reward: Whether to transform the reward. If False all the wrappers containing "reward" in their name are not applied, by default True.
+        :type transform_reward: bool, optional
         """
 
         if num_envs is None:
@@ -150,6 +158,8 @@ class BaseAlgorithm:
 
         if self.envs_wrappers is not None:
             for wrapper in self.envs_wrappers:
+                if not transform_reward and "reward" in wrapper.__name__.lower():
+                    continue
                 env = wrapper(env)
 
         return env
@@ -295,7 +305,7 @@ class BaseAlgorithm:
         if seed is None:
             seed = np.random.randint(0, np.iinfo(np.int32).max)  # Random seed to avoid overfitting to the same initial state
 
-        env_kwargs = {"num_envs": 1, "sync": False, "track_statistics": False, "seed": seed}
+        env_kwargs = {"num_envs": 1, "sync": False, "track_statistics": False, "seed": seed, "transform_reward": False}
         if display:
             env = self.make_env(render_mode="human", **env_kwargs)
         elif save_video:
@@ -351,7 +361,7 @@ class BaseAlgorithm:
             random.seed(seeds[i])
 
             try:
-                self.test(save_video=True, video_path=video_path)#, seed=seeds[i])
+                self.test(save_video=True, video_path=video_path, seed=seeds[i])
             except Exception as e:
                 print("Failed to save video for model {}".format(model))
                 print(e)
