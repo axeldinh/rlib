@@ -11,8 +11,8 @@ from gymnasium.spaces import Box
 from gymnasium.wrappers import ClipAction, TransformObservation, NormalizeReward, TransformReward
 
 from rlib.agents import get_agent
-from .base_algorithm import BaseAlgorithm
-from .replay_buffer import ReplayBuffer
+from rlib.learning.base_algorithm import BaseAlgorithm
+from rlib.learning.replay_buffer import ReplayBuffer
 
 
 class DDPGAgent(torch.nn.Module):
@@ -175,6 +175,8 @@ class DDPG(BaseAlgorithm):
                 ClipAction, lambda env: TransformObservation(env, lambda obs: np.clip(obs, -10, 10)),
                 NormalizeReward, lambda env: TransformReward(env, lambda rew: np.clip(rew, -10, 10))
             ]
+        else:
+            envs_wrappers = None
                         
         super().__init__(env_kwargs=env_kwargs, num_envs=1, 
                          max_episode_length=max_episode_length, max_total_reward=max_total_reward, 
@@ -632,3 +634,12 @@ class DDPG(BaseAlgorithm):
         self.target_agent.load_state_dict(data['model_parameters']['target_agent'])
         self.mu_optimizer.load_state_dict(data['model_parameters']['mu_optimizer'])
         self.q_optimizer.load_state_dict(data['model_parameters']['q_optimizer'])
+
+if __name__ == "__main__":
+
+    import gymnasium as gym
+    env = gym.make("CartPole-v1")
+    env = NormalizeReward(env)
+    env = TransformReward(env, lambda rew: np.clip(rew, -10, 10))
+
+    print(env)
