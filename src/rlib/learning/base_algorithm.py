@@ -158,9 +158,11 @@ class BaseAlgorithm:
 
         if self.envs_wrappers is not None:
             for wrapper in self.envs_wrappers:
-                if not transform_reward and "reward" in wrapper.__name__.lower():
-                    continue
                 env = wrapper(env)
+                # If the wrapper operates on the reward, we undo it
+                # We do after application in case wrapper is a lambda function
+                if not transform_reward and "reward" in env.__class__.__name__.lower():
+                    env = env.env
 
         return env
 
@@ -371,3 +373,16 @@ class BaseAlgorithm:
 
         self.load(f".tmp{key}.pkl", verbose=False)
         os.remove(f".tmp{key}.pkl")
+
+
+if __name__ == "__main__":
+
+    from rlib.learning import DeepQLearning
+
+    env_kwargs = {"id": "CartPole-v1"}
+    agent_kwargs = {"hidden_sizes": [200, 200]}
+    model = DeepQLearning(env_kwargs, agent_kwargs, normalize_observation=True)
+    f = lambda env: gym.wrappers.TransformReward(env, lambda rew: np.clip(rew, -10 , 10))
+    model.envs_wrappers = [gym.wrappers.NormalizeReward, f]
+    print(model.make_env())
+    print(model.make_env(transform_reward=False))
