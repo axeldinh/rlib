@@ -1,6 +1,6 @@
 # RLib
 
-The library that I built while learning some Reinforcement Learning algorithms.
+The library that I built while learning some Reinforcement Learning algorithms. The library is built on top of the `Gymnasium` and `PyTorch` frameworks. It is designed to be as modular as possible. The documentation, built using `Sphinx` can be found [here](https://axeldinh.github.io/rlib/).
 
 ## Installation
 
@@ -30,7 +30,7 @@ Note that installing `Box2D` and `MuJoCo` is not trivial and the installation is
 
 ### Documentation
 
-To generate the documentation, one must install `sphinx` and the `furo` theme:
+To generate the documentation, one must install `Sphinx` and the `Furo` theme:
 
 ```bash
 pip install sphinx
