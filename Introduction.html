@@ -263,6 +263,14 @@ Finally, the model can be trained using the following code:</p>
 <p><strong>Proximal Policy Optimization on `BipedalWalker-v3`</strong>:</p>
 <a class="reference internal image-reference" href="_images/ppo_iter400.gif"><img alt="_images/ppo_iter400.gif" src="_images/ppo_iter400.gif" style="width: 400px;" /></a>
 </section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
+<p>Many things are still missing from the package, but the main ones are:</p>
+<ul class="simple">
+<li><p>GPU support, this could be easily implemented by sending the tensors to the GPU using <cite>torch.cuda()</cite> when needed. This would allow the package to be used on more complex environments, and with more complex agents, such CNNs.</p></li>
+<li><p>CNN support, this could be implemented by adding a <cite>CNN</cite> class in <cite>rlib.agents</cite> and adding an automatic detection of the type of agent in <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent</span></code></a>.</p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -307,6 +315,7 @@ Finally, the model can be trained using the following code:</p>
 <li><a class="reference internal" href="#documentation-generation">Documentation Generation</a></li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
 </ul>
