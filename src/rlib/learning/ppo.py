@@ -352,7 +352,7 @@ class PPO(BaseAlgorithm):
             obs = torch.tensor(obs, dtype=torch.float32)
             action, log_prob, _, value = self.current_agent(obs)
 
-            next_obs, reward, next_done, _, info = self.env.step(action.detach().numpy())
+            next_obs, reward, next_done, trunc, info = self.env.step(action.detach().numpy())
 
             self.buffer.store(
                 action, obs, reward, done, log_prob.detach(), value.detach().squeeze(-1)
@@ -363,9 +363,12 @@ class PPO(BaseAlgorithm):
 
             self.global_step += self.num_envs
 
-            if "episode" in info and not np.all(done==0):
-                writer.add_scalar("Train/Episode Length", info["episode"]["l"].sum() / done.sum(), self.global_step)
-                writer.add_scalar("Train/Reward", info["episode"]["r"].sum() / done.sum(), self.global_step)
+            if "episode" in info and (np.any(done==1) or np.any(trunc==1)) :
+
+                num_episodes = np.sum(done==1) + np.sum(trunc==1)
+
+                writer.add_scalar("Train/Episode Length", info["episode"]["l"].sum() / num_episodes, self.global_step)
+                writer.add_scalar("Train/Reward", info["episode"]["r"].sum() / num_episodes, self.global_step)
 
                 if np.any(info['episode']['l'] > 1600):
                     print(info['episode'])
