@@ -95,12 +95,12 @@ Here is a showcase of the algorithms used on different environments:
 **Evolution Strategy on `FlappyBird-v0`**:
 
 .. image:: assets/evolution_strat_iter200.gif
-    :width: 400
+    :width: 200
 
 **Deep Deterministic Policy Gradient on `HalfCheetah-v4`**:
 
 .. image:: assets/ddpg_iter4000.gif
-    :width: 400
+    :width: 300
 
 **Proximal Policy Optimization on `BipedalWalker-v3`**:
 
