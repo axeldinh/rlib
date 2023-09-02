@@ -1,1 +1,1 @@
-import rlib.envs.flappy_bird_gymnasium as FlappyBird
+import rlib.envs.flappy_bird_gymnasium
