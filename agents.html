@@ -200,18 +200,238 @@
 <h2>Available Agents:<a class="headerlink" href="#available-agents" title="Link to this heading">#</a></h2>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">MLP</span></code></p></li>
+<li><p><a class="reference internal" href="#agents.q_table.QTable" title="agents.q_table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a></p></li>
+<li><p><a class="reference internal" href="#agents.mlp.MLP" title="agents.mlp.MLP"><code class="xref py py-class docutils literal notranslate"><span class="pre">MLP</span></code></a></p></li>
 </ul>
 </div></blockquote>
 <p>A function is given to create an agent from a configuration dictionary:</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="rlib.agents.get_agent">
+<span class="sig-prename descclassname"><span class="pre">rlib.agents.</span></span><span class="sig-name descname"><span class="pre">get_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_table</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddpg_q_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ppo_critic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#rlib.agents.get_agent" title="Link to this definition">#</a></dt>
+<dd><p>Global function to get an agent from its type and parameters</p>
+<p>This is the function used in the algorithms when a kwargs for an agent are given.
+The agent type (MLP, CNN…) is usually automatically inferred from the environment’s observation and action spaces.</p>
+<p>Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">rlib.agents</span> <span class="kn">import</span> <span class="n">get_agent</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">gymnasium</span> <span class="k">as</span> <span class="nn">gym</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s2">&quot;CartPole-v1&quot;</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># This environment has a Box(4,) observation space and a Discrete(2,) action space</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Hence the infered agent type is a MLP with `input_size=4` and `output_size=2`</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">agent</span> <span class="o">=</span> <span class="n">get_agent</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="p">,</span> 
+<span class="go">                      env.action_space, </span>
+<span class="go">                      {&#39;hidden_sizes&#39;: [64, 64], &#39;activation&#39;: &#39;tanh&#39;})</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">agent</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Returns:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">MLP</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">(</span><span class="n">layers</span><span class="p">):</span> <span class="n">Sequential</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">(</span><span class="mi">0</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">(</span><span class="mi">1</span><span class="p">):</span> <span class="n">ReLU</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">(</span><span class="mi">2</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">(</span><span class="mi">3</span><span class="p">):</span> <span class="n">ReLU</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="p">(</span><span class="mi">4</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs_space</strong> (<em>gym.spaces</em>) – observation space of the environment</p></li>
+<li><p><strong>action_space</strong> (<em>gym.spaces</em>) – action space of the environment</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – kwargs for the agent, see <code class="xref py py-mod docutils literal notranslate"><span class="pre">rlib.agents</span></code> for more details.</p></li>
+<li><p><strong>q_table</strong> (<em>bool</em>) – whether to use a QTable agent</p></li>
+<li><p><strong>ddpg_q_agent</strong> (<em>bool</em>) – if True, the agent is a Q function and returns a scalar value for each state-action pair</p></li>
+<li><p><strong>ppo_critic</strong> (<em>bool</em>) – if True, the agent is a critic and returns a scalar value for each state</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Either <a class="reference internal" href="#agents.mlp.MLP" title="agents.mlp.MLP"><code class="xref py py-class docutils literal notranslate"><span class="pre">MLP</span></code></a> or <a class="reference internal" href="#agents.q_table.QTable" title="agents.q_table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> depending on the parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
 <p>This is useful for saving and loading agents automatically from file.</p>
 </section>
 <section id="qtable">
 <h2>QTable<a class="headerlink" href="#qtable" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="agents.q_table.QTable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">agents.q_table.</span></span><span class="sig-name descname"><span class="pre">QTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.q_table.QTable" title="Link to this definition">#</a></dt>
+<dd><p>Q-Table class for classic Q-Learning.</p>
+<p>The Q-Table is a table of size <cite>(grid_size, grid_size, …, grid_size, action_size)</cite> where <cite>grid_size</cite> is the number of discretization for each dimension of the state space and action_size is the number of actions.
+The values given by the QTable are the Q-values for each state-action pair, i.e.:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Q(s_t, a_t) = \sum_{k=0}^{T} \gamma^{k} R(s_{t+k+1}, a_{t+k+1}) \]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\gamma\)</span> is the discount factor, <span class="math notranslate nohighlight">\(T\)</span> the end of the episode, <span class="math notranslate nohighlight">\(s_t\)</span> the state at time <span class="math notranslate nohighlight">\(t\)</span> and <span class="math notranslate nohighlight">\(a_t\)</span> the action at time <span class="math notranslate nohighlight">\(t\)</span>.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.agents</span> <span class="kn">import</span> <span class="n">QTable</span>
+<span class="kn">import</span> <span class="nn">gymnasium</span> <span class="k">as</span> <span class="nn">gym</span>
+
+<span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s2">&quot;CartPole-v1&quot;</span><span class="p">)</span>
+
+<span class="n">q_table</span> <span class="o">=</span> <span class="n">QTable</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">grid_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>  <span class="c1"># 10 discretization for each dimension of the state space</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">action</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_action</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+<span class="n">q_table</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># update the Q-Table with the new value</span>
+
+<span class="n">q_s_a</span> <span class="o">=</span> <span class="n">q_table</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>  <span class="c1"># sample the Q-Table for the given state-action pair</span>
+
+<span class="n">q_s</span> <span class="o">=</span> <span class="n">q_table</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>  <span class="c1"># sample the Q-Table for the given state</span>
+
+<span class="n">best_action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">q_s</span><span class="p">)</span>  <span class="c1"># get the best action to take from the given state</span>
+<span class="n">best_action</span> <span class="o">=</span> <span class="n">q_table</span><span class="o">.</span><span class="n">get_action</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>  <span class="c1"># equivalent to the previous line</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grid_size</strong> (<em>int</em>) – number of discretization for each dimension of the state space.</p></li>
+<li><p><strong>state_size</strong> (<em>int</em>) – size of the state space.</p></li>
+<li><p><strong>action_size</strong> (<em>int</em>) – size of the action space.</p></li>
+<li><p><strong>q_table</strong> (<em>np.ndarray</em>) – the Q-Table.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.q_table.QTable.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.q_table.QTable.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the QTable class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> – gymnasium environment kwargs, is used to call <cite>gym.make(**env_kwargs)</cite>.</p></li>
+<li><p><strong>grid_size</strong> (<em>int</em><em>, </em><em>optional</em>) – number of discretization for each dimension of the state space.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if the action space is not discrete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.q_table.QTable.get_action">
+<span class="sig-name descname"><span class="pre">get_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.q_table.QTable.get_action" title="Link to this definition">#</a></dt>
+<dd><p>Get the action to take from the current state</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>np.array</em>) – current state</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>action to take</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.q_table.QTable.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.q_table.QTable.discretize" title="Link to this definition">#</a></dt>
+<dd><p>Discretize the state, i.e. convert it to a tuple of integers allowing sampling in the table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>np.array</em>) – current state</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>discretized state</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.q_table.QTable.sample">
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.q_table.QTable.sample" title="Link to this definition">#</a></dt>
+<dd><p>Sample the QTable, if no action is given return the Q-values for each action, otherwise return the Q-value for the given action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>np.array</em>) – current state</p></li>
+<li><p><strong>action</strong> (<em>int</em><em>, </em><em>optional</em>) – action to take</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>sampled value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float if action is given, np.array otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.q_table.QTable.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.q_table.QTable.update" title="Link to this definition">#</a></dt>
+<dd><p>Update the QTable, given a new value for a state-action pair</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>np.array</em>) – current state</p></li>
+<li><p><strong>action</strong> (<em>int</em>) – action to take</p></li>
+<li><p><strong>new_value</strong> (<em>float</em>) – new value to set</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="mlp">
 <h2>MLP<a class="headerlink" href="#mlp" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="agents.mlp.MLP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">agents.mlp.</span></span><span class="sig-name descname"><span class="pre">MLP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.mlp.MLP" title="Link to this definition">#</a></dt>
+<dd><p>Simple Multi-Layer Perceptron (MLP) class.</p>
+<p>Note that, in order to use algorithm such that <a class="reference internal" href="learning.html#learning.evolution_strategy.EvolutionStrategy" title="learning.evolution_strategy.EvolutionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">learning.evolution_strategy.EvolutionStrategy</span></code></a>,
+the gradient of the MLP should be disabled. This can be done by setting the <cite>requires_grad</cite> argument of each tensor to False.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">rlib.agents</span> <span class="kn">import</span> <span class="n">MLP</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">MLP</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">)</span>  <span class="c1"># 4 observations, 2 actions, 2 hidden layers of 32 neurons each</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> 
+<span class="n">y</span> <span class="o">=</span> <span class="n">agent</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>layers</strong> (<em>torch.nn.Sequential</em>) – A torch.nn.Sequential object containing the layers of the MLP.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.mlp.MLP.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#agents.mlp.MLP.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the MLP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – The size of the input.</p></li>
+<li><p><strong>hidden_sizes</strong> (<em>list</em>) – A list containing the sizes of the hidden layers.</p></li>
+<li><p><strong>output_size</strong> (<em>int</em>) – The size of the output.</p></li>
+<li><p><strong>activation</strong> (<em>str</em><em>, </em><em>optional</em>) – The activation function to use. Should be one of ‘relu’, ‘tanh’ or ‘sigmoid’. Default is ‘relu’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <cite>activation</cite> is not one of ‘relu’, ‘tanh’ or ‘sigmoid’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -271,9 +491,28 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Agents</a><ul>
-<li><a class="reference internal" href="#available-agents">Available Agents:</a></li>
-<li><a class="reference internal" href="#qtable">QTable</a></li>
-<li><a class="reference internal" href="#mlp">MLP</a></li>
+<li><a class="reference internal" href="#available-agents">Available Agents:</a><ul>
+<li><a class="reference internal" href="#rlib.agents.get_agent"><code class="docutils literal notranslate"><span class="pre">get_agent()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#qtable">QTable</a><ul>
+<li><a class="reference internal" href="#agents.q_table.QTable"><code class="docutils literal notranslate"><span class="pre">QTable</span></code></a><ul>
+<li><a class="reference internal" href="#agents.q_table.QTable.__init__"><code class="docutils literal notranslate"><span class="pre">QTable.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#agents.q_table.QTable.get_action"><code class="docutils literal notranslate"><span class="pre">QTable.get_action()</span></code></a></li>
+<li><a class="reference internal" href="#agents.q_table.QTable.discretize"><code class="docutils literal notranslate"><span class="pre">QTable.discretize()</span></code></a></li>
+<li><a class="reference internal" href="#agents.q_table.QTable.sample"><code class="docutils literal notranslate"><span class="pre">QTable.sample()</span></code></a></li>
+<li><a class="reference internal" href="#agents.q_table.QTable.update"><code class="docutils literal notranslate"><span class="pre">QTable.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mlp">MLP</a><ul>
+<li><a class="reference internal" href="#agents.mlp.MLP"><code class="docutils literal notranslate"><span class="pre">MLP</span></code></a><ul>
+<li><a class="reference internal" href="#agents.mlp.MLP.__init__"><code class="docutils literal notranslate"><span class="pre">MLP.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -289,5 +528,6 @@
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

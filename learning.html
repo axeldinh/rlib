@@ -200,11 +200,11 @@
 <h2>Algorithms Available<a class="headerlink" href="#algorithms-available" title="Link to this heading">#</a></h2>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">EvolutionStrategy</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Q-Learning</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Deep</span> <span class="pre">Q-Learning</span></code></p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Deep</span> <span class="pre">Deterministic</span> <span class="pre">Policy</span> <span class="pre">Gradient</span></code></p></li>
+<li><p><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm" title="learning.base_algorithm.BaseAlgorithm"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy" title="learning.evolution_strategy.EvolutionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">EvolutionStrategy</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.q_learning.QLearning" title="learning.q_learning.QLearning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Q-Learning</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.deep_q_learning.DeepQLearning" title="learning.deep_q_learning.DeepQLearning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Deep</span> <span class="pre">Q-Learning</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.ddpg.DDPG" title="learning.ddpg.DDPG"><code class="xref py py-class docutils literal notranslate"><span class="pre">Deep</span> <span class="pre">Deterministic</span> <span class="pre">Policy</span> <span class="pre">Gradient</span></code></a></p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -228,28 +228,522 @@
 <hr class="docutils" />
 <section id="basealgorithm">
 <h2>BaseAlgorithm<a class="headerlink" href="#basealgorithm" title="Link to this heading">#</a></h2>
-<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm</span></code> class gives the baselines for an algorithm to be useable
+<p>The <a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm" title="learning.base_algorithm.BaseAlgorithm"><code class="xref py py-class docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm</span></code></a> class gives the baselines for an algorithm to be useable
 by our implementations.</p>
 <p>For an algorithm to be useable, it must implement the following methods:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm.train_()</span></code></p></li>
-<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm.save()</span></code></p></li>
-<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm.load()</span></code></p></li>
+<li><p><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.train_" title="learning.base_algorithm.BaseAlgorithm.train_"><code class="xref py py-meth docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm.train_()</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.save" title="learning.base_algorithm.BaseAlgorithm.save"><code class="xref py py-meth docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm.save()</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.load" title="learning.base_algorithm.BaseAlgorithm.load"><code class="xref py py-meth docutils literal notranslate"><span class="pre">learning.base_algorithm.BaseAlgorithm.load()</span></code></a></p></li>
 </ul>
 </div></blockquote>
+<dl class="py class">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">learning.base_algorithm.</span></span><span class="sig-name descname"><span class="pre">BaseAlgorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'results'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">envs_wrappers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm" title="Link to this definition">#</a></dt>
+<dd><p>This class is the base class for all algorithms.</p>
+<p>Once implemented, an algorithm can be used as follow:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">gymnasium</span>
+<span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">DeepQLearning</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;env_name&quot;</span><span class="p">:</span> <span class="s2">&quot;CartPole-v1&quot;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;hidden_sizes&quot;</span><span class="p">:</span> <span class="s2">&quot;[200, 200]&quot;</span><span class="p">}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">DeepQLearning</span><span class="p">(</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">test</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>num_envs</strong> (<em>int</em>) – The number of environments to use for training.</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em>) – Maximum number of steps taken to complete an episode.</p></li>
+<li><p><strong>max_total_reward</strong> (<em>float</em>) – Maximum reward achievable in one episode</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em>) – The path of the folder where to save the results</p></li>
+<li><p><strong>videos_folder</strong> (<em>str</em>) – The path of the folder where to save the videos</p></li>
+<li><p><strong>models_folder</strong> (<em>str</em>) – The path of the folder where to save the models</p></li>
+<li><p><strong>plots_folder</strong> (<em>str</em>) – The path of the folder where to save the plots</p></li>
+<li><p><strong>current_agent</strong> – The current agent used by the algorithm</p></li>
+<li><p><strong>env_kwargs</strong> – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>normalize_observation</strong> (<em>bool</em>) – Whether to normalize the observation in <cite>[-1, 1]</cite></p></li>
+<li><p><strong>envs_wrappers</strong> (<em>list</em><em>, </em><em>optional</em>) – The wrappers to use for the environment, by default None.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'results'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">envs_wrappers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Base class for all the algorithms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>num_envs</strong> (<em>int</em>) – The number of environments to use for training.</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of steps taken to complete an episode. Default is -1 (no limit)</p></li>
+<li><p><strong>max_total_reward</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum reward achievable in one episode. Default is -1 (no limit)</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em><em>, </em><em>optional</em>) – The path of the folder where to save the results. Default is “results”</p></li>
+<li><p><strong>normalize_observation</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to normalize the observation in <cite>[-1, 1]</cite>. Default is False</p></li>
+<li><p><strong>seed</strong> (<em>int</em>) – The seed to use for the environment.</p></li>
+<li><p><strong>envs_wrappers</strong> (<em>list</em><em>, </em><em>optional</em>) – The wrappers to use for the environment, by default None.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.train" title="Link to this definition">#</a></dt>
+<dd><p>Default training method.</p>
+<p>Along with the training, it creates the folders for saving the results, saves the hyperparameters and the git info.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.train_">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">train_</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.train_" title="Link to this definition">#</a></dt>
+<dd><p>Train the agent on the environment.</p>
+<p>This method should be implemented in the child class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.test">
+<span class="sig-name descname"><span class="pre">test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">display</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_video</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.test" title="Link to this definition">#</a></dt>
+<dd><p>Test the current agent on the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_episodes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to test the agent on, by default 1.</p></li>
+<li><p><strong>display</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to display the game, by default False.</p></li>
+<li><p><strong>save_video</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to save a video of the game, by default False.</p></li>
+<li><p><strong>video_path</strong> (<em>str</em><em>, </em><em>optional</em>) – The path to save the video to, by default None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The mean reward obtained over the episodes, and the standard deviation of the reward obtained over the episodes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, float</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If num_episodes is not strictly positive.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.save">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.save" title="Link to this definition">#</a></dt>
+<dd><p>Save the current agent to the given path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – The path to save the agent to.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.load">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.load" title="Link to this definition">#</a></dt>
+<dd><p>Load the agent from the given path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – The path to load the agent from.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.save_plots">
+<span class="sig-name descname"><span class="pre">save_plots</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.save_plots" title="Link to this definition">#</a></dt>
+<dd><p>Save the plots of the training.</p>
+<p>The plots are saved in the plots folder <code class="xref py py-attr docutils literal notranslate"><span class="pre">plots_folder</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.base_algorithm.BaseAlgorithm.save_videos">
+<span class="sig-name descname"><span class="pre">save_videos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#learning.base_algorithm.BaseAlgorithm.save_videos" title="Link to this definition">#</a></dt>
+<dd><p>Saves videos of the models saved at testing iterations.</p>
+<p>The videos are saved in the saving folder <code class="xref py py-attr docutils literal notranslate"><span class="pre">save_folder</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="evolutionstrategy">
 <h2>EvolutionStrategy<a class="headerlink" href="#evolutionstrategy" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="learning.evolution_strategy.EvolutionStrategy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">learning.evolution_strategy.</span></span><span class="sig-name descname"><span class="pre">EvolutionStrategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'evolution_strategy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_max_score</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.evolution_strategy.EvolutionStrategy" title="Link to this definition">#</a></dt>
+<dd><p>Implementation of the Evolution Strategy algorithm.</p>
+<p>This algorithm does not need gradient computation, it is therefore
+compatible with any agent, however, for simplicity <cite>PyTorch</cite> network are used here.</p>
+<p>The update rule of the weights is given by:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\theta_{t+1} = \theta_t + \frac{1}{N \sigma} \sum_{i=1}^N r_i \epsilon_i\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(w_t\)</span> are the weights at iteration <span class="math notranslate nohighlight">\(t\)</span>, <span class="math notranslate nohighlight">\(N\)</span> is the number of agents,
+<span class="math notranslate nohighlight">\(\sigma\)</span> is the noise standard deviation, <span class="math notranslate nohighlight">\(r_i\)</span> is the reward obtained by the agent
+with weights <span class="math notranslate nohighlight">\(w_t\)</span> + <span class="math notranslate nohighlight">\(\sigma\epsilon_i\)</span>.</p>
+<p>Each <span class="math notranslate nohighlight">\(\epsilon_i\)</span> is sampled from a normal distribution with mean 0 and standard deviation 1.</p>
+<p>Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">EvolutionStrategy</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;CartPole-v0&#39;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">]}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">EvolutionStrategy</span><span class="p">(</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="p">,</span> <span class="n">num_agents</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">num_iterations</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_plots</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_videos</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.evolution_strategy.EvolutionStrategy.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'evolution_strategy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_max_score</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.evolution_strategy.EvolutionStrategy.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the Evolution Strategy algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>agent_kwargs</strong> (<em>dict</em>) – Kwargs used to call <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent(kwargs=agent_kwargs)</span></code></a>, some parameters are automatically infered (inputs sizes, MLP or CNN, …).</p></li>
+<li><p><strong>num_agents</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of agents to use to compute the gradient, by default 30</p></li>
+<li><p><strong>num_iterations</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of iterations to run the algorithm, by default 300</p></li>
+<li><p><strong>lr</strong> (<em>float</em><em>, </em><em>optional</em>) – The learning rate, by default 0.03</p></li>
+<li><p><strong>sigma</strong> (<em>float</em><em>, </em><em>optional</em>) – The noise standard deviation, by default 0.1</p></li>
+<li><p><strong>test_every</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of iterations between each test, by default 50</p></li>
+<li><p><strong>num_test_episodes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to play during each test, by default 5</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of steps to play in an episode, by default -1 (no limit)</p></li>
+<li><p><strong>max_total_reward</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum total reward to get in an episode, by default -1 (no limit)</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em><em>, </em><em>optional</em>) – The folder where to save the models at each test step, by default “evolution_strategy”</p></li>
+<li><p><strong>stop_max_score</strong> – Whether to stop the training when the maximum score is reached on a test run, by default False</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to display a progression bar during training, by default True</p></li>
+<li><p><strong>normalize_observation</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to normalize the observation, by default False</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The seed to use for the environment, by default 42</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.evolution_strategy.EvolutionStrategy._get_random_parameters">
+<span class="sig-name descname"><span class="pre">_get_random_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#learning.evolution_strategy.EvolutionStrategy._get_random_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Returns some randomly generated parameters sampled from normal distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The randomly generated parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict[str, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.evolution_strategy.EvolutionStrategy._parameters_update">
+<span class="sig-name descname"><span class="pre">_parameters_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_rewards</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.evolution_strategy.EvolutionStrategy._parameters_update" title="Link to this definition">#</a></dt>
+<dd><p>Computes the new parameters of the agent.</p>
+<p>The new parameters are given by the formula in <a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy" title="learning.evolution_strategy.EvolutionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">EvolutionStrategy</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>torch.Tensor</em><em>]</em>) – The current parameters of the agent.</p></li>
+<li><p><strong>test_rewards</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – The rewards obtained by the agents with the current parameters and the noise.</p></li>
+<li><p><strong>test_noise</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>torch.Tensor</em><em>]</em>) – The noise used to compute the gradient.</p></li>
+<li><p><strong>lr</strong> (<em>float</em>) – The learning rate.</p></li>
+<li><p><strong>sigma</strong> (<em>float</em>) – The noise standard deviation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The new parameters of the agent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.evolution_strategy.EvolutionStrategy._get_test_parameters">
+<span class="sig-name descname"><span class="pre">_get_test_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.evolution_strategy.EvolutionStrategy._get_test_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Given the current parameters, the noise standard deviation and the noise, returns the parameters to test.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>torch.Tensor</em><em>]</em>) – The current parameters of the agent.</p></li>
+<li><p><strong>sigma</strong> (<em>float</em>) – The noise standard deviation.</p></li>
+<li><p><strong>noise</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>torch.Tensor</em><em>]</em>) – The noise to add to the parameters.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The parameters to test.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="qlearning">
 <h2>QLearning<a class="headerlink" href="#qlearning" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="learning.q_learning.QLearning">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">learning.q_learning.</span></span><span class="sig-name descname"><span class="pre">QLearning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'qlearning'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_greedy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_decay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.q_learning.QLearning" title="Link to this definition">#</a></dt>
+<dd><p>Applies the QLearning algorithm to the environment.</p>
+<p>The Q-Table is updated using the following formula:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Q(s_t, a_t) = Q(s_t, a_t) + \alpha \left(r_{t+1} + \gamma \max_{a} Q(s_{t+1}, a) - Q(s_t, a_t) \right)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha\)</span> is the learning rate and <span class="math notranslate nohighlight">\(\gamma\)</span> the discount factor.</p>
+<p>An epsilon greedy policy is used to select the actions.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">gymnasium</span>
+<span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">QLearning</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;MountainCar-v0&#39;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;grid_size&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">QLearning</span><span class="p">(</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">discount</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">epsilon_greedy</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">epsilon_decay</span><span class="o">=</span><span class="mf">0.9999</span><span class="p">,</span> <span class="n">epsilon_min</span><span class="o">=</span><span class="mf">0.01</span><span class="p">))</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_plots</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_videos</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.q_learning.QLearning.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'qlearning'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_greedy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_decay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.q_learning.QLearning.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the QLearning algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>agent_kwargs</strong> (<em>dict</em>) – Kwargs to call <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent(agent_kwargs=agent_kwargs,</span> <span class="pre">q_table=True)</span></code></a>, the <cite>env_kwargs</cite> parameter can be ommited.</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum length of an episode, by default -1 (no limit).</p></li>
+<li><p><strong>max_total_reward</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum total reward to get in the episode, by default -1 (no limit).</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em><em>, </em><em>optional</em>) – The path of the folder where to save the results. Default is “results”</p></li>
+<li><p><strong>num_iterations</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to train. Default is 1000.</p></li>
+<li><p><strong>lr</strong> (<em>float</em><em>, </em><em>optional</em>) – The learning rate. Default is 0.03.</p></li>
+<li><p><strong>discount</strong> (<em>float</em><em>, </em><em>optional</em>) – The discount factor. Default is 0.99.</p></li>
+<li><p><strong>epsilon_greedy</strong> (<em>float</em><em>, </em><em>optional</em>) – The epsilon greedy parameter. Default is 0.9.</p></li>
+<li><p><strong>epsilon_decay</strong> (<em>float</em><em>, </em><em>optional</em>) – The epsilon decay parameter. Default is 0.9999.</p></li>
+<li><p><strong>epsilon_min</strong> (<em>float</em><em>, </em><em>optional</em>) – The minimum epsilon value. Default is 0.01.</p></li>
+<li><p><strong>test_every</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes between each save. Default is 10.</p></li>
+<li><p><strong>num_test_episodes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to test. Default is 5.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to print the results of each episode. Default is True.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The seed for the environment. Default is 42.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="deep-q-learning">
 <h2>Deep Q-Learning<a class="headerlink" href="#deep-q-learning" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="learning.deep_q_learning.DeepQLearning">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">learning.deep_q_learning.</span></span><span class="sig-name descname"><span class="pre">DeepQLearning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'deep_qlearning'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exploration_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_time_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_starts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_updates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">main_target_update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_replay_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_grad_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_max_score</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.deep_q_learning.DeepQLearning" title="Link to this definition">#</a></dt>
+<dd><p>Deep Q-Learning algorithm.</p>
+<p>The Q-Table is replaced by a neural network that approximates the Q-Table.</p>
+<p>The neural network is updated using the following formula:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Q(s_t, a_t) = Q(s_t, a_t) + \alpha \left(r_{t+1} + \gamma \max_{a} Q(s_{t+1}, a) - Q(s_t, a_t) \right)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha\)</span> is the learning rate and <span class="math notranslate nohighlight">\(\gamma\)</span> the discount factor.</p>
+<p>Hence, the method is only suitable for discrete action spaces.</p>
+<p>An epsilon greedy policy is used to select the actions, and the actions are stored in a <code class="xref py py-class docutils literal notranslate"><span class="pre">ReplayBuffer</span></code> 
+before being used to update the neural network.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">DeepQLearning</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;CartPole-v1&#39;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">]}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">DeepQLearning</span><span class="p">(</span>
+    <span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="p">,</span>
+    <span class="n">lr</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">discount</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
+    <span class="n">epsilon_start</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">epsilon_min</span><span class="o">=</span><span class="mf">0.01</span>
+    <span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">test</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_plots</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.deep_q_learning.DeepQLearning.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'deep_qlearning'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exploration_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_time_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_starts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_updates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">main_target_update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_replay_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_grad_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_max_score</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.deep_q_learning.DeepQLearning.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the DeepQLearning algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>agent_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>get_agent(obs_space, action_space, **agent_kwargs)</cite>.</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum length of an episode, by default -1 (no limit).</p></li>
+<li><p><strong>max_total_reward</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum total reward to get in the episode, by default -1 (no limit).</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em><em>, </em><em>optional</em>) – The folder where to save the model, by default “deep_qlearning”.</p></li>
+<li><p><strong>lr</strong> (<em>float</em><em>, </em><em>optional</em>) – The learning rate, by default 3e-4.</p></li>
+<li><p><strong>discount</strong> (<em>float</em><em>, </em><em>optional</em>) – The discount factor, by default 0.99.</p></li>
+<li><p><strong>epsilon_start</strong> (<em>float</em><em>, </em><em>optional</em>) – The probability to take a random action, by default 0.1.</p></li>
+<li><p><strong>epsilon_min</strong> (<em>float</em><em>, </em><em>optional</em>) – The minimum value of epsilon greedy, by default 0.01.</p></li>
+<li><p><strong>exploration_fraction</strong> (<em>float</em><em>, </em><em>optional</em>) – The fraction of the training time during which the epsilon is decreased, if 0.1 <cite>epsilon_min</cite> will be reached after 10% of training time, by default 0.1.</p></li>
+<li><p><strong>num_time_steps</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of time steps to train the agent, by default 100_000.</p></li>
+<li><p><strong>learning_starts</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of time steps before starting to train the agent, by default 50_000.</p></li>
+<li><p><strong>update_every</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of time steps between each update of the neural network, by default 4.</p></li>
+<li><p><strong>number_updates</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of updates to perform at each time step, by default set to <code class="xref py py-attr docutils literal notranslate"><span class="pre">update_every</span></code>.</p></li>
+<li><p><strong>main_target_update</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of time steps between each update of the target network, by default 100.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to print the results, by default True.</p></li>
+<li><p><strong>test_every</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of time steps between each test, by default 50_000.</p></li>
+<li><p><strong>num_test_episodes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to test the agent, by default 10.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The batch size, by default 64.</p></li>
+<li><p><strong>size_replay_buffer</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of the replay buffer, by default 100_000.</p></li>
+<li><p><strong>max_grad_norm</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum norm of the gradients, by default 10.</p></li>
+<li><p><strong>normalize_observation</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to normalize the observation in <cite>[-1, 1]</cite>, by default False.</p></li>
+<li><p><strong>stop_max_score</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to stop the training when the maximum score is reached, by default False.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The seed for the environment, by default 42.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.deep_q_learning.DeepQLearning._populate_replay_buffer">
+<span class="sig-name descname"><span class="pre">_populate_replay_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.deep_q_learning.DeepQLearning._populate_replay_buffer" title="Link to this definition">#</a></dt>
+<dd><p>Populate the replay buffer with random samples from the environment.</p>
+<p>This is done until the replay buffer is filled with <code class="xref py py-attr docutils literal notranslate"><span class="pre">learning_starts</span></code> samples.
+Furthermore, the actions are sampled randomly with probability <code class="xref py py-attr docutils literal notranslate"><span class="pre">epsilon</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>env</strong> (<em>gymnasium.ENV</em>) – The environment to sample from.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.deep_q_learning.DeepQLearning.update_weights">
+<span class="sig-name descname"><span class="pre">update_weights</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#learning.deep_q_learning.DeepQLearning.update_weights" title="Link to this definition">#</a></dt>
+<dd><p>Update the weights of the neural network.</p>
+<p>From the :<code class="xref py py-attr docutils literal notranslate"><span class="pre">replay_buffer</span></code>, a batch of size <code class="xref py py-attr docutils literal notranslate"><span class="pre">batch_size</span></code> is used to update the weights of the neural network using the following loss:</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="deep-deterministic-policy-gradient">
 <h2>Deep Deterministic Policy Gradient<a class="headerlink" href="#deep-deterministic-policy-gradient" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="learning.ddpg.DDPG">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">learning.ddpg.</span></span><span class="sig-name descname"><span class="pre">DDPG</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ddpg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_annealing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_updates_per_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_policy_update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twin_q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_starts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_update_tau</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_replay_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_grad_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_norm_wrappers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ddpg.DDPG" title="Link to this definition">#</a></dt>
+<dd><p>Implementation of the <a class="reference external" href="https://arxiv.org/abs/1509.02971">Deep Deterministic Policy Gradient algorithm</a> with options to use the improvements from <a class="reference external" href="https://arxiv.org/abs/1802.09477">TD3</a>.</p>
+<p>Here, a Policy agent <span class="math notranslate nohighlight">\(\mu(s)\)</span> and a Q-function agent <span class="math notranslate nohighlight">\(Q(s, a)\)</span> are used.
+<span class="math notranslate nohighlight">\(\mu(s)\)</span> is trained to maximize <span class="math notranslate nohighlight">\(Q(s, \mu(s))\)</span> and <span class="math notranslate nohighlight">\(Q(s, a)\)</span> is trained to minimize <span class="math notranslate nohighlight">\((Q(s, a) - (r + \gamma Q(s', \mu(s'))))^2\)</span>.</p>
+<p>Because of the nature of the problem, including the fact that <span class="math notranslate nohighlight">\(\mu(s)\)</span> should be differentiable, only 
+environments with continuous action spaces are supported.</p>
+<p>For the TD3 improvements, two Q-functions are used, and the policy is updated less frequently.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">DDPG</span>
+<span class="kn">import</span> <span class="nn">gymnasium</span> <span class="k">as</span> <span class="nn">gym</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;BipedalWalker-v3&#39;</span><span class="p">,</span> <span class="s1">&#39;hardcore&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+<span class="n">mu_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">]}</span>
+<span class="n">q_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">]}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">DDPG</span><span class="p">(</span>
+    <span class="n">env_kwargs</span><span class="p">,</span> <span class="n">mu_kwargs</span><span class="p">,</span> <span class="n">q_kwargs</span><span class="p">,</span>
+    <span class="n">max_episode_length</span><span class="o">=</span><span class="mi">1600</span><span class="p">,</span> <span class="n">max_total_reward</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">save_folder</span><span class="o">=</span><span class="s2">&quot;ddpg&quot;</span><span class="p">,</span> <span class="n">q_lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span> <span class="n">mu_lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span>
+    <span class="n">action_noise</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">target_noise</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">delay_policy_update</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">twin_q</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">discount</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">2_000</span><span class="p">,</span>
+    <span class="n">learning_starts</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">target_update_tau</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">test</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ddpg.DDPG.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ddpg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_annealing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_updates_per_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_policy_update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twin_q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_starts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_update_tau</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_replay_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_grad_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_norm_wrappers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ddpg.DDPG.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the DDPG algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
+<li><p><strong>mu_kwargs</strong> (<em>dict</em>) – The kwargs for the policy agent.</p></li>
+<li><p><strong>q_kwargs</strong> (<em>dict</em>) – The kwargs for the Q-function agent.</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum length of an episode, by default -1 (no limit).</p></li>
+<li><p><strong>max_total_reward</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum total reward to get in the episode, by default -1 (no limit).</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em><em>, </em><em>optional</em>) – The folder where to save the models, plots and videos, by default “ddpg”.</p></li>
+<li><p><strong>q_lr</strong> (<em>float</em><em>, </em><em>optional</em>) – The learning rate for the Q-function agent, by default 3e-4.</p></li>
+<li><p><strong>mu_lr</strong> (<em>float</em><em>, </em><em>optional</em>) – The learning rate for the policy agent, by default 3e-4.</p></li>
+<li><p><strong>action_noise</strong> (<em>float</em><em>, </em><em>optional</em>) – The noise added during population of the replay buffer, by default 0.1.</p></li>
+<li><p><strong>target_noise</strong> (<em>float</em><em>, </em><em>optional</em>) – The noise added to target actions, by default 0.2.</p></li>
+<li><p><strong>num_updates_per_iter</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of updates per iteration, by default 10.</p></li>
+<li><p><strong>delay_policy_update</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of Q-function updates before updating the policy, by default 2.</p></li>
+<li><p><strong>twin_q</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use two Q-functions, by default True.</p></li>
+<li><p><strong>discount</strong> (<em>float</em><em>, </em><em>optional</em>) – The discount factor, by default 0.99.</p></li>
+<li><p><strong>num_episodes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to train, by default 1000.</p></li>
+<li><p><strong>learning_starts</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of random samples in the replay buffer before training, by default 50_000.</p></li>
+<li><p><strong>target_update_tau</strong> (<em>float</em><em>, </em><em>optional</em>) – The percentage of weights to copy from the main model to the target model, by default 0.01.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to print the progress, by default True.</p></li>
+<li><p><strong>test_every</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes between each test, by default 50_000.</p></li>
+<li><p><strong>num_test_episodes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of episodes to test, by default 10.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The batch size for training, by default 64.</p></li>
+<li><p><strong>size_replay_buffer</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of the replay buffer, by default 100_000.</p></li>
+<li><p><strong>max_grad_norm</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum norm of the gradients, by default 10.</p></li>
+<li><p><strong>normalize_observation</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to normalize the observations, by default False.</p></li>
+<li><p><strong>use_norm_wrappers</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use the ClipAction, NormalizeReward and clip the observations and rewards to <cite>[-10, 10]</cite>. This is useful for the MuJoCo environments, by default True.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The seed for the random number generator, by default 42.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the action space is not continuous.</p></li>
+<li><p><strong>NotImplementedError</strong> – If the observation space is not 1D, 2D or 3D.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ddpg.DDPG._update_target_weights">
+<span class="sig-name descname"><span class="pre">_update_target_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ddpg.DDPG._update_target_weights" title="Link to this definition">#</a></dt>
+<dd><p>Updates the target weights using the current weights.</p>
+<p>It uses the formula:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\theta_{target} = \tau \theta_{current} + (1 - \tau) \theta_{target}\]</div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ddpg.DDPG._populate_replay_buffer">
+<span class="sig-name descname"><span class="pre">_populate_replay_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ddpg.DDPG._populate_replay_buffer" title="Link to this definition">#</a></dt>
+<dd><p>Plays random actions in the environment to populate the replay buffer, until the number of samples is equal to <cite>learning_starts</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>env</strong> (<em>gymnasium.ENV</em>) – The environment to use.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ddpg.DDPG.update_weights">
+<span class="sig-name descname"><span class="pre">update_weights</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#learning.ddpg.DDPG.update_weights" title="Link to this definition">#</a></dt>
+<dd><p>Updates the neural networks using the replay buffer.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -311,11 +805,56 @@ by our implementations.</p>
 <li><a class="reference internal" href="#">Learning</a><ul>
 <li><a class="reference internal" href="#algorithms-available">Algorithms Available</a></li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#basealgorithm">BaseAlgorithm</a></li>
-<li><a class="reference internal" href="#evolutionstrategy">EvolutionStrategy</a></li>
-<li><a class="reference internal" href="#qlearning">QLearning</a></li>
-<li><a class="reference internal" href="#deep-q-learning">Deep Q-Learning</a></li>
-<li><a class="reference internal" href="#deep-deterministic-policy-gradient">Deep Deterministic Policy Gradient</a></li>
+<li><a class="reference internal" href="#basealgorithm">BaseAlgorithm</a><ul>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code></a><ul>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.__init__"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.train"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.train()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.train_"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.train_()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.test"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.test()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.save"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.save()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.load"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.load()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.save_plots"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.save_plots()</span></code></a></li>
+<li><a class="reference internal" href="#learning.base_algorithm.BaseAlgorithm.save_videos"><code class="docutils literal notranslate"><span class="pre">BaseAlgorithm.save_videos()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#evolutionstrategy">EvolutionStrategy</a><ul>
+<li><a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy"><code class="docutils literal notranslate"><span class="pre">EvolutionStrategy</span></code></a><ul>
+<li><a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy.__init__"><code class="docutils literal notranslate"><span class="pre">EvolutionStrategy.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy._get_random_parameters"><code class="docutils literal notranslate"><span class="pre">EvolutionStrategy._get_random_parameters()</span></code></a></li>
+<li><a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy._parameters_update"><code class="docutils literal notranslate"><span class="pre">EvolutionStrategy._parameters_update()</span></code></a></li>
+<li><a class="reference internal" href="#learning.evolution_strategy.EvolutionStrategy._get_test_parameters"><code class="docutils literal notranslate"><span class="pre">EvolutionStrategy._get_test_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#qlearning">QLearning</a><ul>
+<li><a class="reference internal" href="#learning.q_learning.QLearning"><code class="docutils literal notranslate"><span class="pre">QLearning</span></code></a><ul>
+<li><a class="reference internal" href="#learning.q_learning.QLearning.__init__"><code class="docutils literal notranslate"><span class="pre">QLearning.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#deep-q-learning">Deep Q-Learning</a><ul>
+<li><a class="reference internal" href="#learning.deep_q_learning.DeepQLearning"><code class="docutils literal notranslate"><span class="pre">DeepQLearning</span></code></a><ul>
+<li><a class="reference internal" href="#learning.deep_q_learning.DeepQLearning.__init__"><code class="docutils literal notranslate"><span class="pre">DeepQLearning.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#learning.deep_q_learning.DeepQLearning._populate_replay_buffer"><code class="docutils literal notranslate"><span class="pre">DeepQLearning._populate_replay_buffer()</span></code></a></li>
+<li><a class="reference internal" href="#learning.deep_q_learning.DeepQLearning.update_weights"><code class="docutils literal notranslate"><span class="pre">DeepQLearning.update_weights()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#deep-deterministic-policy-gradient">Deep Deterministic Policy Gradient</a><ul>
+<li><a class="reference internal" href="#learning.ddpg.DDPG"><code class="docutils literal notranslate"><span class="pre">DDPG</span></code></a><ul>
+<li><a class="reference internal" href="#learning.ddpg.DDPG.__init__"><code class="docutils literal notranslate"><span class="pre">DDPG.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#learning.ddpg.DDPG._update_target_weights"><code class="docutils literal notranslate"><span class="pre">DDPG._update_target_weights()</span></code></a></li>
+<li><a class="reference internal" href="#learning.ddpg.DDPG._populate_replay_buffer"><code class="docutils literal notranslate"><span class="pre">DDPG._populate_replay_buffer()</span></code></a></li>
+<li><a class="reference internal" href="#learning.ddpg.DDPG.update_weights"><code class="docutils literal notranslate"><span class="pre">DDPG.update_weights()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -331,5 +870,6 @@ by our implementations.</p>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
