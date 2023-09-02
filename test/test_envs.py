@@ -17,7 +17,7 @@ try:
 except ImportError as e:
     raise e
 
-def test_env(env_name):
+def single_test_env(env_name):
 
     print(f"Testing {env_name} environment")
 
@@ -63,4 +63,6 @@ def test_env(env_name):
         print(f"\t{bcolors.OKGREEN}Played one episode of {env_name} and saved video")
         os.remove("test.mp4")
 
-test_env("FlappyBird-v0")
+def test_envs():
+    
+    single_test_env("FlappyBird-v0")

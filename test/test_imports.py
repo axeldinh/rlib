@@ -13,12 +13,5 @@ try:
     print("Imported rlib.utils")
     from rlib.agents import *
     print("Imported rlib.agents")
-    from rlib.wrappers import *
-    print("Imported rlib.wrappers")
 except ImportError as e:
     raise e
-
-import gymnasium
-env = gymnasium.make("FlappyBird-v0", render_mode=None)
-
-play_episode(env, None)
