@@ -1,10 +1,9 @@
-.. RLib documentation master file, created by
-   sphinx-quickstart on Wed May 10 16:45:52 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-Welcome to RLib's documentation!
+Welcome to the documentation of my Reinforcement Learning library!
 ================================
+
+This is a personal project to learn about reinforcement learning!
+As such, it is not meant to be a comprehensive library, but rather a learning tool for myself.
 
 .. toctree::
    :maxdepth: 2
