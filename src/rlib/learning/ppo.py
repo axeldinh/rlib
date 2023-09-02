@@ -297,8 +297,8 @@ class PPO(BaseAlgorithm):
 
         self.next_test += self.test_every
 
-        writer.add_scalar("Test/Reward Mean", mean, self.global_step)
-        writer.add_scalar("Test/Reward Std", std, self.global_step)
+        writer.add_scalar("Test/Mean Reward", mean, self.global_step)
+        writer.add_scalar("Test/Std Reward", std, self.global_step)
 
         self.mean_test_rewards.append(mean)
         self.std_test_rewards.append(std)
