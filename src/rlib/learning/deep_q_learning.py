@@ -123,7 +123,7 @@ class DeepQLearning(BaseAlgorithm):
         :type epsilon_start: float, optional
         :param epsilon_min: The minimum value of epsilon greedy, by default 0.01.
         :type epsilon_min: float, optional
-        :param exploration_fraction: The fraction of the training time during which the epsilon is decreased, if 0.1 :param:`epsilon_min` will be reached after 10% of training time, by default 0.1.
+        :param exploration_fraction: The fraction of the training time during which the epsilon is decreased, if 0.1 `epsilon_min` will be reached after 10% of training time, by default 0.1.
         :type exploration_fraction: float, optional
         :param num_time_steps: The number of time steps to train the agent, by default 100_000.
         :type num_time_steps: int, optional

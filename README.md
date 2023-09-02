@@ -14,7 +14,7 @@ pip install .
 
 Remember that, if using a virtual environment, you must activate it before running the command. Furthermore,
 if using ``conda``, you must call ``conda install pip`` before installing the package. Otherwise, the package will
-be installed using another ``pip`` that is not the one from the ``conda`` environment.To run the library on all `gymnasium` environments, other dependencies are required. To install them, run the following command:
+be installed using another ``pip`` that is not the one from the ``conda`` environment. To run the library on all `gymnasium` environments, other dependencies are required. To install them, run the following command:
 
 ```bash
 pip install gymnasium[all]
@@ -30,7 +30,14 @@ Note that installing `Box2D` and `MuJoCo` is not trivial and the installation is
 
 ### Documentation
 
-To generate the documentation, run the following command:
+To generate the documentation, one must install `sphinx` and the `furo` theme:
+
+```bash
+pip install sphinx
+pip install furo
+```
+
+Then, to generate the documentation, run the following command:
 
 ```bash
 cd docs
@@ -38,7 +45,6 @@ make html
 ```
 
 The documentation will be generated in the ``docs/build/html`` folder. To open it, simply open the ``index.html`` in your browser.
-
 
 ### Examples
 
