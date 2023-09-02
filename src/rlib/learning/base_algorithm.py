@@ -244,6 +244,9 @@ class BaseAlgorithm:
 
         Along with the training, it creates the folders for saving the results, saves the hyperparameters and the git info.
         """
+        print("Training the model...")
+        print("The results will be saved in {}".format(self.save_folder))
+        print("Use tensorboard --logdir {} to visualize the results".format(self.save_folder))
         self._create_folders()
         self.save_hyperparameters()
         self.save_git_info()
@@ -371,27 +374,3 @@ class BaseAlgorithm:
 
         self.load(f".tmp{key}.pt", verbose=False)
         os.remove(f".tmp{key}.pt")
-
-
-if __name__ == "__main__":
-
-    from rlib.learning import DeepQLearning
-
-    env_kwargs = {"id": "CartPole-v1"}
-    agent_kwargs = {"hidden_sizes": [200, 200]}
-    model = DeepQLearning(env_kwargs, agent_kwargs, normalize_observation=True)
-    f = lambda env: gym.wrappers.TransformReward(env, lambda rew: np.clip(rew, -10 , 10))
-    model.envs_wrappers = [gym.wrappers.NormalizeReward, f]
-    print(model.make_env())
-    print(model.make_env(transform_reward=False))
-
-if __name__ == "__main__":
-    import subprocess
-    import sys
-
-    abs_path_git_directory = os.path.abspath(__file__)
-    # Stop at src in case someone cloned the repo with a different name
-    while os.path.basename(os.path.normpath(abs_path_git_directory)) != "src":
-        print(abs_path_git_directory)
-        abs_path_git_directory = os.path.dirname(abs_path_git_directory)
-    abs_path_git_directory = os.path.dirname(abs_path_git_directory)
