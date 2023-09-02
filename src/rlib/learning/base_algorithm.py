@@ -182,41 +182,32 @@ class BaseAlgorithm:
     def save_git_info(self):
         """ Saves the git info of the repository.
         """
-        import subprocess
         import sys
+        from rlib.utils import get_git_infos
 
-        abs_path_git_directory = os.path.abspath(__file__)
-        # Stop at src in case someone cloned the repo with a different name
-        while os.path.basename(os.path.normpath(abs_path_git_directory)) != "src":
-            abs_path_git_directory = os.path.dirname(abs_path_git_directory)
-        abs_path_git_directory = os.path.dirname(abs_path_git_directory)
+        try:
+            # If working in a cloned repo, we can get the git infos
+            get_git_infos()
+        except Exception as e:
+            try:
+                # Else they are saved when installing the package
+                from rlib.__git_infos__ import __remote_url__, __commit_hash__, __commit_message__, __branch_name__
+            except Exception as e:
+                # Else we cannot get the git infos
+                print("Failed to get git infos")
+                print(e)
+                return
 
-        # Get the remote url
-        remote_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"], 
-                                             cwd=abs_path_git_directory).decode("utf-8").strip()
-
-        # Get the commit hash
-        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], 
-                                              cwd=abs_path_git_directory).decode("utf-8").strip()
-
-        # Get the commit message
-        commit_message = subprocess.check_output(["git", "log", "-1", "--pretty=%B"],
-                                                 cwd=abs_path_git_directory).decode("utf-8").strip().replace("|", " ")
-
-        # Get the branch name
-        branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                                              cwd=abs_path_git_directory).decode("utf-8").strip()
-
-        clone_command = "git clone {}".format(remote_url)
-        checkout_command = 'git checkout -b "{}" {}'.format(f"{branch_name}_{commit_hash}", commit_hash)
+        clone_command = "git clone {}".format(__remote_url__)
+        checkout_command = 'git checkout -b "{}" {}'.format(f"{__branch_name__}_{__commit_hash__}", __commit_hash__)
         command_to_run = "python " + " ".join(sys.argv)
 
         git_infos = "| RLib Git info | Value |\n"
         git_infos += "| :--- | ---: |\n"
-        git_infos += "| Remote url | {} |\n".format(remote_url)
-        git_infos += "| Branch name | {} |\n".format(branch_name)
-        git_infos += "| Commit hash | {} |\n".format(commit_hash)
-        git_infos += "| Commit message | {} |\n".format(commit_message)
+        git_infos += "| Remote url | {} |\n".format(__remote_url__)
+        git_infos += "| Branch name | {} |\n".format(__branch_name__)
+        git_infos += "| Commit hash | {} |\n".format(__commit_hash__)
+        git_infos += "| Commit message | {} |\n".format(__commit_message__)
         git_infos += "| Clone command | {} |\n".format(clone_command)
         git_infos += "| Checkout command | {} |\n".format(checkout_command)
         git_infos += "| Command to run | {} |\n".format(command_to_run)
@@ -393,3 +384,14 @@ if __name__ == "__main__":
     model.envs_wrappers = [gym.wrappers.NormalizeReward, f]
     print(model.make_env())
     print(model.make_env(transform_reward=False))
+
+if __name__ == "__main__":
+    import subprocess
+    import sys
+
+    abs_path_git_directory = os.path.abspath(__file__)
+    # Stop at src in case someone cloned the repo with a different name
+    while os.path.basename(os.path.normpath(abs_path_git_directory)) != "src":
+        print(abs_path_git_directory)
+        abs_path_git_directory = os.path.dirname(abs_path_git_directory)
+    abs_path_git_directory = os.path.dirname(abs_path_git_directory)

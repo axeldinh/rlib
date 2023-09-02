@@ -3,3 +3,4 @@ rlib.egg-info/
 __pycache__/
 .vscode/
 dist/
+src/rlib/__git_infos__.py

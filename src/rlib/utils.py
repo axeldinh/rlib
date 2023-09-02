@@ -77,3 +77,34 @@ def play_episode(env, agent=None,
         video_writer.release()
     
     return total_reward, episode_length
+
+def get_git_infos(path=None):
+    """ Returns the git infos of the repository and save it
+    """
+    import subprocess
+    import os
+
+    if path is None:
+        path = os.path.dirname(os.path.abspath(__file__))
+
+    # Get the remote url
+    remote_url = subprocess.check_output(["git", "config", "--get", "remote.origin.url"], 
+                                            cwd=path).decode("utf-8").strip()
+
+    # Get the commit hash
+    commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], 
+                                            cwd=path).decode("utf-8").strip()
+
+    # Get the commit message
+    commit_message = subprocess.check_output(["git", "log", "-1", "--pretty=%B"],
+                                                cwd=path).decode("utf-8").strip().replace("|", " ").replace("\n", " ")
+
+    # Get the branch name
+    branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                                            cwd=path).decode("utf-8").strip()
+
+    with open(os.path.abspath("src/rlib/__git_infos__.py"), "w") as infos_file:
+        infos_file.write(f'__remote_url__ = "{remote_url}"\n')
+        infos_file.write(f'__commit_hash__ = "{commit_hash}"\n')
+        infos_file.write(f'__commit_message__ = "{commit_message}"\n')
+        infos_file.write(f'__branch_name__ = "{branch_name}"\n')

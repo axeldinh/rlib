@@ -2,6 +2,10 @@
 import pathlib
 from setuptools import setup
 
+from src.rlib.utils import get_git_infos
+
+get_git_infos()
+
 def get_requirements():
     with open(pathlib.Path(__file__).parent.resolve().joinpath("requirements.txt")) as requirements_file:
         return requirements_file.read().splitlines()
