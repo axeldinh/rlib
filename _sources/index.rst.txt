@@ -10,7 +10,7 @@ Welcome to RLib's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   installation
+   introduction
    learning
    agents
    envs

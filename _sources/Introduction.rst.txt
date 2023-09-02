@@ -50,7 +50,7 @@ The code can be decomposed into two main parts `Learning` and `Agents`.
 
 `Learning` contains the different algorithms which have been implemented while `Agents` contains the different agents which can be used to interact with the environment.
 
-To use them on a `gymnasium` environment, the user most choose an algorithm along with the different parameters the agents should take.
+To use them on a `gymnasium` environment, the user must choose an algorithm along with the different parameters the agents should take.
 
 For example, to use the `DeepQLearning` algorithm on the `gymnasium` `CartPole-v1` environment, as the action space is discrete, the agent should be a MLP. This can be done using the following code:
 
@@ -63,7 +63,7 @@ For example, to use the `DeepQLearning` algorithm on the `gymnasium` `CartPole-v
     
     model = EvolutionStrategy(env_kwargs=env_kwargs, agent_kwargs=agent_kwargs, save_folder="EvStrat_CartPole-v1")
 
-Note that only `dictionaries` are passed to the algorithms and agents. This is to allow the user to pass any parameters to the environment and the agent, while allowing a full saving of the model.
+Note that only `dictionaries` are passed to the algorithms and agents. This allows the user to pass any parameters to the environment and the agent, while allowing a full saving of the model.
 Finally, the model can be trained using the following code:
 
 .. code-block:: python
