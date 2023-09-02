@@ -13,8 +13,20 @@ pip install .
 ```
 
 Remember that, if using a virtual environment, you must activate it before running the command. Furthermore,
-if using ``conda``, you must call ``conda install pip`` before installing the package. Else, the package will
-be installed using another ``pip`` that is not the one from the ``conda`` environment.
+if using ``conda``, you must call ``conda install pip`` before installing the package. Otherwise, the package will
+be installed using another ``pip`` that is not the one from the ``conda`` environment.To run the library on all `gymnasium` environments, other dependencies are required. To install them, run the following command:
+
+```bash
+pip install gymnasium[all]
+```
+
+or
+
+```bash
+pip install "gymnasium[all]"
+```
+
+Note that installing `Box2D` and `MuJoCo` is not trivial and the installation is quite dependent on the OS. For example, to install `MuJoCo` on Windows, we add to install `MuJoCo` version `1.50.1` while the latest version when we write those lines is `2.1.0`.
 
 ### Documentation
 
