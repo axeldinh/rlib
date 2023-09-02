@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Learning" href="learning.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Introduction" href="introduction.html" />
 
     <!-- Generated with Sphinx 7.2.5 and Furo 2023.08.19 -->
         <title>RLib 0.0.1 documentation</title>
@@ -156,6 +156,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="learning.html">Learning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a></li>
 <li class="toctree-l1"><a class="reference internal" href="envs.html">Environments</a></li>
@@ -200,6 +201,96 @@ As such, it is not meant to be a comprehensive library, but rather a learning to
 <div class="toctree-wrapper compound">
 </div>
 </section>
+<section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h1>
+<section id="package-installation">
+<h2>Package Installation<a class="headerlink" href="#package-installation" title="Link to this heading">#</a></h2>
+<p>To install the package, run the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/axeldinh/rlib.git
+<span class="nb">cd</span><span class="w"> </span>rlib
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>To perform the tests, run the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>pytest
+<span class="nb">cd</span><span class="w"> </span>rlib
+pytest
+</pre></div>
+</div>
+<p>However, tests are automatically performed on push using Github Actions.</p>
+</section>
+<section id="documentation-generation">
+<h2>Documentation Generation<a class="headerlink" href="#documentation-generation" title="Link to this heading">#</a></h2>
+<p>To generate the documentation, run the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>docs
+make<span class="w"> </span>html
+</pre></div>
+</div>
+<p>Note that the documentation is generated using Sphinx. The documentation can be found in the <code class="docutils literal notranslate"><span class="pre">docs/build/html</span></code> directory.</p>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">#</a></h2>
+<p>The package can then be simply imported using:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rlib</span>
+</pre></div>
+</div>
+<p>The code can be decomposed into two main parts <a class="reference internal" href="learning.html"><span class="doc">Learning</span></a> and <a class="reference internal" href="agents.html"><span class="doc">Agents</span></a>.</p>
+<p><a class="reference internal" href="learning.html"><span class="doc">Learning</span></a> contains the different algorithms which have been implemented while <a class="reference internal" href="agents.html"><span class="doc">Agents</span></a> contains the different agents which can be used to interact with the environment.</p>
+<p>To use them on a <cite>gymnasium</cite> environment, the user must choose an algorithm along with the different parameters the agents should take.</p>
+<p>For example, to use the <cite>DeepQLearning</cite> algorithm on the <cite>gymnasium</cite> <cite>CartPole-v1</cite> environment, as the action space is discrete, the agent should be a MLP. This can be done using the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">EvolutionStrategy</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;CartPole-v1&#39;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">EvolutionStrategy</span><span class="p">(</span><span class="n">env_kwargs</span><span class="o">=</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="o">=</span><span class="n">agent_kwargs</span><span class="p">,</span> <span class="n">save_folder</span><span class="o">=</span><span class="s2">&quot;EvStrat_CartPole-v1&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that only <cite>dictionaries</cite> are passed to the algorithms and agents. This allows the user to pass any parameters to the environment and the agent, while allowing a full saving of the model.
+Finally, the model can be trained using the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>And the plots and videos generated by the model can be saved using:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save_plots</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save_videos</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Finally, a <cite>Flappy Bird</cite> environment has been implemented using <cite>PyGame</cite>. This environment can be used using the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">EvolutionStrategy</span>
+<span class="kn">import</span> <span class="nn">rlib.envs</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;FlappyBird-v0&#39;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">EvolutionStrategy</span><span class="p">(</span><span class="n">env_kwargs</span><span class="o">=</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="o">=</span><span class="n">agent_kwargs</span><span class="p">,</span> <span class="n">save_folder</span><span class="o">=</span><span class="s2">&quot;EvStrat_FlappyBird-v0&quot;</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">FlappyBird</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more detail on the environment, see <a class="reference internal" href="envs.html"><span class="doc">Environments</span></a></p>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h2>
+<p>Here is a showcase of the algorithms used on different environments:</p>
+<p><strong>Q-Learning on `MountainCar-v0`</strong>:</p>
+<a class="reference internal image-reference" href="_images/qlearning_iter100000.gif"><img alt="_images/qlearning_iter100000.gif" src="_images/qlearning_iter100000.gif" style="width: 400px;" /></a>
+<p><strong>Deep Q-Learning on `LunarLander-v2`</strong>:</p>
+<a class="reference internal image-reference" href="_images/dqn_iter50000.gif"><img alt="_images/dqn_iter50000.gif" src="_images/dqn_iter50000.gif" style="width: 400px;" /></a>
+<p><strong>Evolution Strategy on `FlappyBird-v0`</strong>:</p>
+<a class="reference internal image-reference" href="_images/evolution_strat_iter200.gif"><img alt="_images/evolution_strat_iter200.gif" src="_images/evolution_strat_iter200.gif" style="width: 200px;" /></a>
+<p><strong>Deep Deterministic Policy Gradient on `HalfCheetah-v4`</strong>:</p>
+<a class="reference internal image-reference" href="_images/ddpg_iter4000.gif"><img alt="_images/ddpg_iter4000.gif" src="_images/ddpg_iter4000.gif" style="width: 300px;" /></a>
+<p><strong>Proximal Policy Optimization on `BipedalWalker-v3`</strong>:</p>
+<a class="reference internal image-reference" href="_images/ppo_iter400.gif"><img alt="_images/ppo_iter400.gif" src="_images/ppo_iter400.gif" style="width: 400px;" /></a>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
+<p>Many things are still missing from the package, but the main ones are:</p>
+<ul class="simple">
+<li><p>GPU support, this could be easily implemented by sending the tensors to the GPU using <cite>torch.cuda()</cite> when needed. This would allow the package to be used on more complex environments, and with more complex agents, such CNNs.</p></li>
+<li><p>CNN support, this could be implemented by adding a <cite>CNN</cite> class in <cite>rlib.agents</cite> and adding an automatic detection of the type of agent in <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent</span></code></a>.</p></li>
+</ul>
+</section>
+</section>
 <section id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">#</a></h1>
 <ul class="simple">
@@ -214,12 +305,12 @@ As such, it is not meant to be a comprehensive library, but rather a learning to
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="learning.html">
+          <a class="next-page" href="introduction.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Learning</div>
+                <div class="title">Introduction</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
