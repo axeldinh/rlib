@@ -226,8 +226,8 @@ make<span class="w"> </span>html
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rlib</span>
 </pre></div>
 </div>
-<p>The code can be decomposed into two main parts <cite>Learning</cite> and <cite>Agents</cite>.</p>
-<p><cite>Learning</cite> contains the different algorithms which have been implemented while <cite>Agents</cite> contains the different agents which can be used to interact with the environment.</p>
+<p>The code can be decomposed into two main parts <a class="reference internal" href="learning.html"><span class="doc">Learning</span></a> and <a class="reference internal" href="agents.html"><span class="doc">Agents</span></a>.</p>
+<p><a class="reference internal" href="learning.html"><span class="doc">Learning</span></a> contains the different algorithms which have been implemented while <a class="reference internal" href="agents.html"><span class="doc">Agents</span></a> contains the different agents which can be used to interact with the environment.</p>
 <p>To use them on a <cite>gymnasium</cite> environment, the user must choose an algorithm along with the different parameters the agents should take.</p>
 <p>For example, to use the <cite>DeepQLearning</cite> algorithm on the <cite>gymnasium</cite> <cite>CartPole-v1</cite> environment, as the action space is discrete, the agent should be a MLP. This can be done using the following code:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">EvolutionStrategy</span>
@@ -248,6 +248,17 @@ Finally, the model can be trained using the following code:</p>
 <span class="n">model</span><span class="o">.</span><span class="n">save_videos</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>Finally, a <cite>Flappy Bird</cite> environment has been implemented using <cite>PyGame</cite>. This environment can be used using the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">EvolutionStrategy</span>
+<span class="kn">import</span> <span class="nn">rlib.envs</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;FlappyBird-v0&#39;</span><span class="p">}</span>
+<span class="n">agent_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]}</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">EvolutionStrategy</span><span class="p">(</span><span class="n">env_kwargs</span><span class="o">=</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">agent_kwargs</span><span class="o">=</span><span class="n">agent_kwargs</span><span class="p">,</span> <span class="n">save_folder</span><span class="o">=</span><span class="s2">&quot;EvStrat_FlappyBird-v0&quot;</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">FlappyBird</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more detail on the environment, see <a class="reference internal" href="envs.html"><span class="doc">Environments</span></a></p>
 </section>
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h2>
