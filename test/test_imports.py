@@ -15,3 +15,8 @@ try:
     print("Imported rlib.agents")
 except ImportError as e:
     raise e
+
+def test_imports():
+
+    #  If we get here, all imports worked
+    return True
