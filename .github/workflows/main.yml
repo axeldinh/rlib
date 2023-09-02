@@ -3,6 +3,20 @@ on: [push, pull_request, workflow_dispatch]
 permissions:
     contents: write
 jobs:
+  tests: 
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - name: Install RLib
+        run: |
+          pip install .
+      - name: Install dependencies
+        run: |
+          pip install pytest
+      - name: Run tests
+        run: |
+          pytest
   docs:
     runs-on: ubuntu-latest
     steps:
