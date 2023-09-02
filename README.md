@@ -26,3 +26,12 @@ make html
 ```
 
 The documentation will be generated in the ``docs/build/html`` folder. To open it, simply open the ``index.html`` in your browser.
+
+
+### Examples
+
+Here are a few examples of trained agents using the library:
+
+| Q-Learning on Mountain Car | Deep QLearning on Lunar Lander | Evolution Strategy on Flappy Bird | Deep Deterministic Policy Gradient on Half Cheetah | PPO on Bipedal Walker |
+|:--------------------------:|:--------------------------:|:--------------------------------:|:-------------------------------------------------:|:---------------------:|
+| ![Mountain Car](assets/qlearning_iter100000.gif) | ![Lunar Lander](assets/dqn_iter50000.gif) | ![Flappy Bird](assets/evolution_strat_iter200.gif) | ![Half Cheetah](assets/ddpg_iter4000.gif) | ![Bipedal Walker](assets/ppo_iter400.gif) |
