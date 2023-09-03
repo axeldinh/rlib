@@ -48,7 +48,7 @@ The documentation will be generated in the ``docs/build/html`` folder. To open i
 
 ### Examples
 
-Here are a few examples of trained agents using the library:
+Here are a few examples of trained agents using the library, the code used to produce those results can be found in the ``scripts`` folder:
 
 | Q-Learning on Mountain Car | Deep QLearning on Lunar Lander | Evolution Strategy on Flappy Bird | Deep Deterministic Policy Gradient on Half Cheetah | PPO on Bipedal Walker |
 |:--------------------------:|:--------------------------:|:--------------------------------:|:-------------------------------------------------:|:---------------------:|
