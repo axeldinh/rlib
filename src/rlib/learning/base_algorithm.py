@@ -188,15 +188,16 @@ class BaseAlgorithm:
         try:
             # If working in a cloned repo, we can get the git infos
             get_git_infos()
+        except:
+            pass
+        try:
+            # Else they are saved when installing the package
+            from rlib.__git_infos__ import __remote_url__, __commit_hash__, __commit_message__, __branch_name__
         except Exception as e:
-            try:
-                # Else they are saved when installing the package
-                from rlib.__git_infos__ import __remote_url__, __commit_hash__, __commit_message__, __branch_name__
-            except Exception as e:
-                # Else we cannot get the git infos
-                print("Failed to get git infos")
-                print(e)
-                return
+            # Else we cannot get the git infos
+            print("Failed to get git infos")
+            print(e)
+            return
 
         clone_command = "git clone {}".format(__remote_url__)
         checkout_command = 'git checkout -b "{}" {}'.format(f"{__branch_name__}_{__commit_hash__}", __commit_hash__)
