@@ -18,6 +18,13 @@ def init_layer(layer, std=np.sqrt(2.), bias_constant=0.0):
     return layer
 
 class PPOAgent(nn.Module):
+    """
+    Agent used for PPO algorithm.
+
+    It is composed of one actor (the policy network) and one critic (the value network).
+    This agent automatically handles discrete and continuous action spaces.
+
+    """
 
     def __init__(self, state_space, action_space, actor_kwargs={}, critic_kwargs={}):
 
@@ -113,6 +120,41 @@ class PPOAgent(nn.Module):
         return action
 
 class PPO(BaseAlgorithm):
+    """
+    Implementation of the Proximal Policy Optimization algorithm (`Paper <https://arxiv.org/abs/1707.06347>`_).
+    
+    For this algorithm, the policy network is optimized using the clipped surrogate objective function:
+
+    .. math::
+
+        L^{CLIP} = \\hat{\\mathbb{E}}_t \\left[ \\min \\left( r_t(\\theta) \\hat{A}_t, \\text{clip}(r_t(\\theta), 1 - \\epsilon, 1 + \\epsilon) \\hat{A}_t \\right) \\right]
+
+    where :math:`r_t(\\theta) = \\frac{\\pi_\\theta(a_t|s_t)}{\\pi_{\\theta_{old}}(a_t|s_t)}` is the probability ratio between the new and old policies,
+    and :math:`\\hat{A}_t` is the advantage function :math:`A(s, a) = Q(s, a) - V(s)` estimated using Generalized Advantage Estimation (GAE) or not.
+
+    Note that :math:`V(s)` is estimated using a critic network, and that :math:`\\epsilon` allows to control the magnitude of the policy update.
+
+    Example:
+    
+    .. code-block:: python
+
+        from rlib.learning import PPO
+
+        env_kwargs = {'id': 'CartPole-v1'}
+        actor_kwargs = {'hidden_sizes': [64, 64]}
+        critic_kwargs = {'hidden_sizes': [64, 64]}
+        ppo = PPO(env_kwargs, actor_kwargs, critic_kwargs, batch_size=10,
+                  num_steps_per_iter=2_000, total_timesteps=200_000,   # 10 iterations, 2_000 * num_envs steps per iteration
+                  num_envs=10, seed=42)
+
+        ppo.train()
+
+    :ivar buffer: Buffer used to store the transitions.
+    :vartype buffer: rlib.learning.rollout_buffer.RolloutBuffer
+    :ivar current_agent: Current agent used to interact with the environment.
+    :vartype current_agent: rlib.learning.ppo.PPOAgent
+
+    """
 
     def __init__(
             self,
@@ -144,6 +186,64 @@ class PPO(BaseAlgorithm):
             lr_annealing=True,
             norm_advantages=True,
     ):
+        """
+        Initialize the PPO algorithm.
+
+        :param env_kwargs: Keyword arguments to pass to the gym environment.
+        :type env_kwargs: dict
+        :param actor_kwargs: Keyword arguments to pass to the actor network, as :meth:`get_agent(kwargs=actor_kwargs)<rlib.agents.get_agent>`.
+        :type actor_kwargs: dict
+        :param critic_kwargs: Keyword arguments to pass to the critic network, as :meth:`get_agent(kwargs=critic_kwargs, ppo_critic=True)<rlib.agents.get_agent>`.
+        :type critic_kwargs: dict
+        :param num_envs: Number of parallel environments. Default is 10.
+        :type num_envs: int
+        :param save_folder: Folder where to save the model. Default is 'ppo'.
+        :type save_folder: str
+        :param normalize_observation: Whether to normalize the observations or not. Default is False.
+        :type normalize_observation: bool
+        :param seed: Seed for the random number generator. Default is 42.
+        :type seed: int
+        :param num_steps_per_iter: Number of steps per iteration per environment. Default is 2048.
+        :type num_steps_per_iter: int
+        :param num_updates_per_iter: Number of network updates per iteration. Default is 10.
+        :type num_updates_per_iter: int
+        :param total_timesteps: Total number of steps to train the agent, should be divisible by `num_steps_per_iter x num_envs`. Default is 1_000_000. 
+        :type total_timesteps: int
+        :param max_episode_length: Maximum length of an episode. If -1, there is no maximum length. Default is -1.
+        :type max_episode_length: int
+        :param max_total_reward: Maximum total reward of an episode. If -1, there is no maximum total reward. Default is -1.
+        :type max_total_reward: int
+        :param test_every: Number of steps between each test. Default is 10_000.
+        :type test_every: int
+        :param num_test_agents: Number of agents to test. Default is 10.
+        :type num_test_agents: int
+        :param batch_size: Batch size. Default is 64.
+        :type batch_size: int
+        :param discount: Discount factor. Default is 0.99.
+        :type discount: float
+        :param use_gae: Whether to use Generalized Advantage Estimation (GAE), if not the advantage estimate is :math:`A(s, a) = \\hat{Q}(s, a) - V(s)`. Default is True.
+        :type use_gae: bool
+        :param lambda_gae: Lambda parameter for GAE. Default is 0.95.
+        :type lambda_gae: float
+        :param policy_loss_clip: Epsilon parameter for the clipped surrogate objective function. Default is 0.2.
+        :type policy_loss_clip: float
+        :param clip_value_loss: Whether to clip the value loss or not. Default is True.
+        :type clip_value_loss: bool
+        :param value_loss_clip: Epsilon parameter for the clipped value loss. Default is 0.2.
+        :type value_loss_clip: float
+        :param value_loss_coef: Coefficient for the value loss. Default is 0.5.
+        :type value_loss_coef: float
+        :param entropy_loss_coef: Coefficient for the entropy loss. Default is 0.01.
+        :type entropy_loss_coef: float
+        :param max_grad_norm: Maximum norm of the gradients. Default is 0.5.
+        :type max_grad_norm: float
+        :param learning_rate: Learning rate. Default is 3e-4.
+        :type learning_rate: float
+        :param lr_annealing: Whether to linearly anneal the learning rate or not. Default is True.
+        :type lr_annealing: bool
+        :param norm_advantages: Whether to normalize the advantages or not. Default is True.
+
+        """
         
         self.kwargs = locals()
 
@@ -211,8 +311,13 @@ class PPO(BaseAlgorithm):
             self.total_timesteps = ((total_timesteps // num_steps_per_iter) + 1) * num_steps_per_iter
             print("total_iterations is set to: ", self.total_timesteps)
 
-
     def update_agent(self, writer):
+        """
+        Updates the agent using data stored in the buffer.
+
+        :param writer: Tensorboard writer.
+        :type writer: torch.utils.tensorboard.SummaryWriter
+        """
 
         for _ in range(self.num_updates_per_iter):
 
@@ -341,8 +446,15 @@ class PPO(BaseAlgorithm):
 
         writer.close()
 
-
     def rollout(self, writer):
+        """
+        Performs one rollout of the agent in the environment.
+
+        The number of stored transitions is equal to `num_steps_per_iter x num_envs`.
+
+        :param writer: Tensorboard writer.
+        :type writer: torch.utils.tensorboard.SummaryWriter
+        """
 
         obs, _ = self.env.reset()
         done = False
@@ -376,7 +488,6 @@ class PPO(BaseAlgorithm):
         obs = torch.tensor(obs, dtype=torch.float32)
         next_value = self.current_agent.get_value(obs).detach().squeeze(-1)
         self.buffer.compute_advantages(done, next_value)
-
 
     def save(self, path):
 
@@ -412,7 +523,6 @@ class PPO(BaseAlgorithm):
 
         with open(path, "wb") as f:
             torch.save(data, f)
-
 
     def load(self, path, verbose=True):
 

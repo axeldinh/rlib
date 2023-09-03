@@ -54,7 +54,7 @@ class QLearning(BaseAlgorithm):
 
         :param env_kwargs: The kwargs for calling `gym.make(**env_kwargs, render_mode=render_mode)`.
         :type env_kwargs: dict
-        :param agent_kwargs: Kwargs to call :meth:`get_agent(agent_kwargs=agent_kwargs, q_table=True)<rlib.agents.get_agent>`, the `env_kwargs` parameter can be ommited.
+        :param agent_kwargs: Kwargs to call :meth:`get_agent(kwargs=agent_kwargs, q_table=True)<rlib.agents.get_agent>`, the `env_kwargs` parameter can be ommited.
         :type agent_kwargs: dict
         :param max_episode_length: The maximum length of an episode, by default -1 (no limit).
         :type max_episode_length: int, optional
