@@ -206,6 +206,7 @@
 <li><p><a class="reference internal" href="#learning.q_learning.QLearning" title="learning.q_learning.QLearning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Q-Learning</span></code></a></p></li>
 <li><p><a class="reference internal" href="#learning.deep_q_learning.DeepQLearning" title="learning.deep_q_learning.DeepQLearning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Deep</span> <span class="pre">Q-Learning</span></code></a></p></li>
 <li><p><a class="reference internal" href="#learning.ddpg.DDPG" title="learning.ddpg.DDPG"><code class="xref py py-class docutils literal notranslate"><span class="pre">Deep</span> <span class="pre">Deterministic</span> <span class="pre">Policy</span> <span class="pre">Gradient</span></code></a></p></li>
+<li><p><a class="reference internal" href="#learning.ppo.PPO" title="learning.ppo.PPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">Proximal</span> <span class="pre">Policy</span> <span class="pre">Optimization</span></code></a></p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -525,7 +526,7 @@ with weights <span class="math notranslate nohighlight">\(w_t\)</span> + <span c
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>env_kwargs</strong> (<em>dict</em>) – The kwargs for calling <cite>gym.make(**env_kwargs, render_mode=render_mode)</cite>.</p></li>
-<li><p><strong>agent_kwargs</strong> (<em>dict</em>) – Kwargs to call <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent(agent_kwargs=agent_kwargs,</span> <span class="pre">q_table=True)</span></code></a>, the <cite>env_kwargs</cite> parameter can be ommited.</p></li>
+<li><p><strong>agent_kwargs</strong> (<em>dict</em>) – Kwargs to call <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent(kwargs=agent_kwargs,</span> <span class="pre">q_table=True)</span></code></a>, the <cite>env_kwargs</cite> parameter can be ommited.</p></li>
 <li><p><strong>max_episode_length</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum length of an episode, by default -1 (no limit).</p></li>
 <li><p><strong>max_total_reward</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum total reward to get in the episode, by default -1 (no limit).</p></li>
 <li><p><strong>save_folder</strong> (<em>str</em><em>, </em><em>optional</em>) – The path of the folder where to save the results. Default is “results”</p></li>
@@ -745,6 +746,104 @@ environments with continuous action spaces are supported.</p>
 
 </dd></dl>
 
+<p>Proximal Policy Optimization</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="learning.ppo.PPO">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">learning.ppo.</span></span><span class="sig-name descname"><span class="pre">PPO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">critic_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ppo'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_steps_per_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2048</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_updates_per_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_timesteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gae</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_gae</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_loss_clip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_value_loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_loss_clip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_loss_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_loss_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_grad_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_annealing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_advantages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ppo.PPO" title="Link to this definition">#</a></dt>
+<dd><p>Implementation of the Proximal Policy Optimization algorithm (<a class="reference external" href="https://arxiv.org/abs/1707.06347">Paper</a>).</p>
+<p>For this algorithm, the policy network is optimized using the clipped surrogate objective function:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[L^{CLIP} = \hat{\mathbb{E}}_t \left[ \min \left( r_t(\theta) \hat{A}_t, \text{clip}(r_t(\theta), 1 - \epsilon, 1 + \epsilon) \hat{A}_t \right) \right]\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}\)</span> is the probability ratio between the new and old policies,
+and <span class="math notranslate nohighlight">\(\hat{A}_t\)</span> is the advantage function <span class="math notranslate nohighlight">\(A(s, a) = Q(s, a) - V(s)\)</span> estimated using Generalized Advantage Estimation (GAE) or not.</p>
+<p>Note that <span class="math notranslate nohighlight">\(V(s)\)</span> is estimated using a critic network, and that <span class="math notranslate nohighlight">\(\epsilon\)</span> allows to control the magnitude of the policy update.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rlib.learning</span> <span class="kn">import</span> <span class="n">PPO</span>
+
+<span class="n">env_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;CartPole-v1&#39;</span><span class="p">}</span>
+<span class="n">actor_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]}</span>
+<span class="n">critic_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]}</span>
+<span class="n">ppo</span> <span class="o">=</span> <span class="n">PPO</span><span class="p">(</span><span class="n">env_kwargs</span><span class="p">,</span> <span class="n">actor_kwargs</span><span class="p">,</span> <span class="n">critic_kwargs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+          <span class="n">num_steps_per_iter</span><span class="o">=</span><span class="mi">2_000</span><span class="p">,</span> <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">200_000</span><span class="p">,</span>   <span class="c1"># 10 iterations, 2_000 * num_envs steps per iteration</span>
+          <span class="n">num_envs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">ppo</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buffer</strong> (<em>rlib.learning.rollout_buffer.RolloutBuffer</em>) – Buffer used to store the transitions.</p></li>
+<li><p><strong>current_agent</strong> (<em>rlib.learning.ppo.PPOAgent</em>) – Current agent used to interact with the environment.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ppo.PPO.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">critic_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ppo'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_observation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_steps_per_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2048</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_updates_per_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_timesteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_episode_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_total_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_test_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gae</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_gae</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_loss_clip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_value_loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_loss_clip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_loss_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_loss_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_grad_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0003</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_annealing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_advantages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ppo.PPO.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the PPO algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_kwargs</strong> (<em>dict</em>) – Keyword arguments to pass to the gym environment.</p></li>
+<li><p><strong>actor_kwargs</strong> (<em>dict</em>) – Keyword arguments to pass to the actor network, as <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent(kwargs=actor_kwargs)</span></code></a>.</p></li>
+<li><p><strong>critic_kwargs</strong> (<em>dict</em>) – Keyword arguments to pass to the critic network, as <a class="reference internal" href="agents.html#rlib.agents.get_agent" title="rlib.agents.get_agent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_agent(kwargs=critic_kwargs,</span> <span class="pre">ppo_critic=True)</span></code></a>.</p></li>
+<li><p><strong>num_envs</strong> (<em>int</em>) – Number of parallel environments. Default is 10.</p></li>
+<li><p><strong>save_folder</strong> (<em>str</em>) – Folder where to save the model. Default is ‘ppo’.</p></li>
+<li><p><strong>normalize_observation</strong> (<em>bool</em>) – Whether to normalize the observations or not. Default is False.</p></li>
+<li><p><strong>seed</strong> (<em>int</em>) – Seed for the random number generator. Default is 42.</p></li>
+<li><p><strong>num_steps_per_iter</strong> (<em>int</em>) – Number of steps per iteration per environment. Default is 2048.</p></li>
+<li><p><strong>num_updates_per_iter</strong> (<em>int</em>) – Number of network updates per iteration. Default is 10.</p></li>
+<li><p><strong>total_timesteps</strong> (<em>int</em>) – Total number of steps to train the agent, should be divisible by <cite>num_steps_per_iter x num_envs</cite>. Default is 1_000_000.</p></li>
+<li><p><strong>max_episode_length</strong> (<em>int</em>) – Maximum length of an episode. If -1, there is no maximum length. Default is -1.</p></li>
+<li><p><strong>max_total_reward</strong> (<em>int</em>) – Maximum total reward of an episode. If -1, there is no maximum total reward. Default is -1.</p></li>
+<li><p><strong>test_every</strong> (<em>int</em>) – Number of steps between each test. Default is 10_000.</p></li>
+<li><p><strong>num_test_agents</strong> (<em>int</em>) – Number of agents to test. Default is 10.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – Batch size. Default is 64.</p></li>
+<li><p><strong>discount</strong> (<em>float</em>) – Discount factor. Default is 0.99.</p></li>
+<li><p><strong>use_gae</strong> (<em>bool</em>) – Whether to use Generalized Advantage Estimation (GAE), if not the advantage estimate is <span class="math notranslate nohighlight">\(A(s, a) = \hat{Q}(s, a) - V(s)\)</span>. Default is True.</p></li>
+<li><p><strong>lambda_gae</strong> (<em>float</em>) – Lambda parameter for GAE. Default is 0.95.</p></li>
+<li><p><strong>policy_loss_clip</strong> (<em>float</em>) – Epsilon parameter for the clipped surrogate objective function. Default is 0.2.</p></li>
+<li><p><strong>clip_value_loss</strong> (<em>bool</em>) – Whether to clip the value loss or not. Default is True.</p></li>
+<li><p><strong>value_loss_clip</strong> (<em>float</em>) – Epsilon parameter for the clipped value loss. Default is 0.2.</p></li>
+<li><p><strong>value_loss_coef</strong> (<em>float</em>) – Coefficient for the value loss. Default is 0.5.</p></li>
+<li><p><strong>entropy_loss_coef</strong> (<em>float</em>) – Coefficient for the entropy loss. Default is 0.01.</p></li>
+<li><p><strong>max_grad_norm</strong> (<em>float</em>) – Maximum norm of the gradients. Default is 0.5.</p></li>
+<li><p><strong>learning_rate</strong> (<em>float</em>) – Learning rate. Default is 3e-4.</p></li>
+<li><p><strong>lr_annealing</strong> (<em>bool</em>) – Whether to linearly anneal the learning rate or not. Default is True.</p></li>
+<li><p><strong>norm_advantages</strong> – Whether to normalize the advantages or not. Default is True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ppo.PPO.rollout">
+<span class="sig-name descname"><span class="pre">rollout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ppo.PPO.rollout" title="Link to this definition">#</a></dt>
+<dd><p>Performs one rollout of the agent in the environment.</p>
+<p>The number of stored transitions is equal to <cite>num_steps_per_iter x num_envs</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writer</strong> (<em>torch.utils.tensorboard.SummaryWriter</em>) – Tensorboard writer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="learning.ppo.PPO.update_agent">
+<span class="sig-name descname"><span class="pre">update_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#learning.ppo.PPO.update_agent" title="Link to this definition">#</a></dt>
+<dd><p>Updates the agent using data stored in the buffer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writer</strong> (<em>torch.utils.tensorboard.SummaryWriter</em>) – Tensorboard writer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -852,6 +951,12 @@ environments with continuous action spaces are supported.</p>
 <li><a class="reference internal" href="#learning.ddpg.DDPG._update_target_weights"><code class="docutils literal notranslate"><span class="pre">DDPG._update_target_weights()</span></code></a></li>
 <li><a class="reference internal" href="#learning.ddpg.DDPG._populate_replay_buffer"><code class="docutils literal notranslate"><span class="pre">DDPG._populate_replay_buffer()</span></code></a></li>
 <li><a class="reference internal" href="#learning.ddpg.DDPG.update_weights"><code class="docutils literal notranslate"><span class="pre">DDPG.update_weights()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#learning.ppo.PPO"><code class="docutils literal notranslate"><span class="pre">PPO</span></code></a><ul>
+<li><a class="reference internal" href="#learning.ppo.PPO.__init__"><code class="docutils literal notranslate"><span class="pre">PPO.__init__()</span></code></a></li>
+<li><a class="reference internal" href="#learning.ppo.PPO.rollout"><code class="docutils literal notranslate"><span class="pre">PPO.rollout()</span></code></a></li>
+<li><a class="reference internal" href="#learning.ppo.PPO.update_agent"><code class="docutils literal notranslate"><span class="pre">PPO.update_agent()</span></code></a></li>
 </ul>
 </li>
 </ul>

@@ -13,6 +13,7 @@ Algorithms Available
     * :class:`Q-Learning<learning.q_learning.QLearning>`
     * :class:`Deep Q-Learning<learning.deep_q_learning.DeepQLearning>`
     * :class:`Deep Deterministic Policy Gradient<learning.ddpg.DDPG>`
+    * :class:`Proximal Policy Optimization<learning.ppo.PPO>`
 
 Usage
 -----
@@ -96,3 +97,11 @@ Deep Deterministic Policy Gradient
     .. automethod:: learning.ddpg.DDPG._update_target_weights
     .. automethod:: learning.ddpg.DDPG._populate_replay_buffer
     .. automethod:: learning.ddpg.DDPG.update_weights
+
+Proximal Policy Optimization
+
+.. autoclass:: learning.ppo.PPO
+
+    .. automethod:: learning.ppo.PPO.__init__
+    .. automethod:: learning.ppo.PPO.rollout
+    .. automethod:: learning.ppo.PPO.update_agent
