@@ -96,30 +96,36 @@ Examples
 
 Here is a showcase of the algorithms used on different environments:
 
-**Q-Learning on MountainCar-v0**:
+.. |qlearning| image:: assets/qlearning_iter100000.gif
+    :width: 100%
 
-.. image:: assets/qlearning_iter100000.gif
-    :width: 400
+.. |dqn| image:: assets/dqn_iter50000.gif
+    :width: 100%
 
-**Deep Q-Learning on LunarLander-v2**:
+.. |evolution_strat| image:: assets/evolution_strat_iter200.gif
+    :width: 100%
 
-.. image:: assets/dqn_iter50000.gif
-    :width: 400
+.. |ddpg| image:: assets/ddpg_iter4000.gif
+    :width: 100%
 
-**Evolution Strategy on FlappyBird-v0**:
+.. |ppo| image:: assets/ppo_iter400.gif
+    :width: 100%
 
-.. image:: assets/evolution_strat_iter200.gif
-    :width: 200
+.. list-table::
+    :widths: 20 20 20 20 20
+    :header-rows: 1
 
-**Deep Deterministic Policy Gradient on HalfCheetah-v4**:
+    * - **Q-Learning on MountainCar-v0**
+      - **Deep Q-Learning on LunarLander-v2**
+      - **Evolution Strategy on FlappyBird-v0**
+      - **Deep Deterministic Policy Gradient on HalfCheetah-v4**
+      - **Proximal Policy Optimization on BipedalWalker-v3**
 
-.. image:: assets/ddpg_iter4000.gif
-    :width: 300
-
-**Proximal Policy Optimization on BipedalWalker-v3**:
-
-.. image:: assets/ppo_iter400.gif
-    :width: 400
+    * - |qlearning|
+      - |dqn|
+      - |evolution_strat|
+      - |ddpg|
+      - |ppo|
 
 Limitations
 -----------
