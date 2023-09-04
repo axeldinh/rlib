@@ -1,11 +1,12 @@
 Introduction
 ============
 
+One can find the repository `here <https://github.com/axeldinh/rlib>`_.
 
 Package Installation
 --------------------
 
-To install the package, run the following commands:
+To install the package, clone the `repository <https://github.com/axeldinh/rlib>`_ and install using `pip`:
 
 .. code-block:: bash
 
