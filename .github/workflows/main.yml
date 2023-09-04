@@ -11,7 +11,7 @@ jobs:
       - name: Install RLib
         run: |
           pip install .
-          pip install piptest
+          pip install pytest
       - name: Run Tests
         run:  |
           pytest
